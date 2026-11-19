@@ -103,6 +103,8 @@ overrides you set for calibre). For a non-Flatpak calibre, start it with `QT_QPA
 - The e-book viewer's in-page scroll bar keeps calibre's look: the viewer's page files cannot be
   overridden. It can be switched off in the viewer's Preferences → Scrolling behavior.
 - The book editor and other separate calibre programs keep calibre's look.
+- calibre's *Toggle search bar* shortcut (Shift+Alt+F) hides the whole header bar, since the
+  header bar is calibre's search bar; press it again to bring it back.
 
 ## Troubleshooting
 
