@@ -332,8 +332,7 @@ def install(theme):
                 a = QApplication.instance()
                 a.setStyleSheet(a.styleSheet() + '\n' + theme.stylesheet(self.is_dark_theme))
                 refresh_tracked_icons()
-            except Exception:
-                # Never take calibre down with us: fall back to its own look.
+            except Exception:  # noqa: BLE001 -- never take calibre down: fall back to its own look
                 import traceback
                 traceback.print_exc()
 
@@ -387,7 +386,7 @@ def style_sidebar(gui):
         from calibre.gui2.tag_browser.view import TagDelegate
         from qt.core import QPalette
         TagDelegate.text_color = lambda self, hover, palette: palette.color(QPalette.ColorRole.WindowText)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 -- calibre internals may change; cosmetic patch only
         debug('tag browser hover colour not patched', e)
     for tv in gui.findChildren(QTreeView):
         if type(tv).__name__ == 'TagsView':
@@ -498,7 +497,7 @@ class AdwaitaAction(InterfaceAction):
             if self.active and prefs()['integrated_titlebar']:
                 from calibre_plugins.adwaita_for_calibre import frameless
                 frameless.prepare(self.gui)
-        except Exception:
+        except Exception:  # noqa: BLE001 -- plugin must not break calibre's startup; traceback printed
             self.active = False
             import traceback
             traceback.print_exc()
@@ -530,6 +529,6 @@ class AdwaitaAction(InterfaceAction):
             if headerbar.merge(self.gui, image_dir) and prefs()['integrated_titlebar']:
                 from calibre_plugins.adwaita_for_calibre import frameless
                 frameless.install(self.gui, image_dir)
-        except Exception:
+        except Exception:  # noqa: BLE001 -- plugin must not break calibre's startup; traceback printed
             import traceback
             traceback.print_exc()

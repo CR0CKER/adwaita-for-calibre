@@ -2,8 +2,13 @@ line-length = 110
 target-version = "py310"
 
 [lint]
-select = ["E", "F", "W", "B", "UP", "I"]
+select = ["E", "F", "W", "B", "UP", "I", "S", "BLE"]
 ignore = ["UP031"]
 
 [lint.isort]
 known-third-party = ["calibre", "qt", "calibre_plugins"]
+
+[lint.per-file-ignores]
+# The screenshot/measurement harness is best-effort dev tooling run by hand: one failing step must
+# not abort the run, so it catches broadly. Not shipped in the plugin.
+"scripts/dev/**" = ["BLE001", "S110"]

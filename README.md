@@ -1,5 +1,10 @@
 # Adwaita for calibre
 
+Last updated: 2026-11-19 04:31 PM CET
+
+[![ci](https://github.com/CR0CKER/adwaita-for-calibre/actions/workflows/ci.yml/badge.svg)](https://github.com/CR0CKER/adwaita-for-calibre/actions/workflows/ci.yml)
+[![License: GPL-3.0](https://img.shields.io/github/license/CR0CKER/adwaita-for-calibre)](LICENSE)
+
 A [calibre](https://calibre-ebook.com) plugin that makes calibre look and feel like a native GNOME
 app: libadwaita's colours, controls and layout, GNOME's symbolic icons, and a single header bar.
 
@@ -94,6 +99,21 @@ plugin in Preferences → Plugins and restart.
 - The e-book viewer's in-page scroll bar keeps calibre's look: the viewer's page files cannot be
   overridden. It can be switched off in the viewer's Preferences → Scrolling behavior.
 - The book editor and other separate calibre programs keep calibre's look.
+
+## Troubleshooting
+
+| Symptom | Cause and fix |
+|---|---|
+| A black frame around the window with the integrated title bar | calibre is on Wayland, or the window was created before the plugin could make it translucent. Check the XWayland override above (`flatpak override --user --show com.calibre_ebook.calibre`) and restart calibre. |
+| `could not connect to display` / calibre does not start after the override | The X11 socket is withheld: the override needs `--nosocket=fallback-x11` as well as `--socket=x11`. |
+| The integrated title bar setting does nothing | It is ignored on native Wayland by design; see *Integrated title bar* above. |
+| Icons did not change | Install them from Customize plugin → **Use Adwaita icons**, then restart calibre. |
+| The accent colour does not follow GNOME | The accent is read from `xdg-desktop-portal`; make sure it is running, then restart calibre. |
+| Something looks broken after a calibre update | The plugin patches calibre internals and is tested on calibre 9.18. Disable it to compare: `flatpak run --command=calibre-customize com.calibre_ebook.calibre --disable-plugin "Adwaita for calibre"`, and please open an issue. |
+
+For a diagnostic log, start calibre with `ADWAITA_CALIBRE_DEBUG=1` set
+(`flatpak run --env=ADWAITA_CALIBRE_DEBUG=1 com.calibre_ebook.calibre`) and read the terminal
+output; lines start with `adwaita-for-calibre:`.
 
 ## How it works
 

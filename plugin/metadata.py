@@ -99,8 +99,9 @@ def install():
         original_init(self, *a, **kw)
         try:
             space_icon_labels(self)
-        except Exception:
-            pass
+        except Exception as e:  # noqa: BLE001 -- cosmetic; never break the dialog over spacing
+            from calibre_plugins.adwaita_for_calibre.main import debug
+            debug('icon/label spacing skipped', e)
 
     MetadataSingleDialogBase.__init__ = init
     FormatsManager._adwaita_patched = True

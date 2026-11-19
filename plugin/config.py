@@ -139,7 +139,7 @@ class ConfigWidget(QWidget):
         from calibre.gui2 import error_dialog, info_dialog
         try:
             fn(*args)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 -- shown to the user in an error dialog
             import traceback
             error_dialog(self, 'Adwaita for calibre', str(e), det_msg=traceback.format_exc(), show=True)
         else:
