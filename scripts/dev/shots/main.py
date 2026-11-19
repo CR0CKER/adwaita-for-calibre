@@ -27,6 +27,7 @@ class Shots(InterfaceAction):
             ('main', self.main), ('focus', self.focus), ('statusbar', self.statusbar), ('hover', self.hover),
             ('layoutmenu', self.layoutmenu), ('scrolled', self.scrolled),
             ('sidebar', self.sidebar), ('perf', self.perf),
+            ('edges', self.edges),
             ('menu', self.menu),
             ('menus', self.menus), ('grid', self.grid),
             ('prefs', self.prefs), ('metadata', self.metadata), ('news', self.news),
@@ -144,6 +145,22 @@ class Shots(InterfaceAction):
                 pass
             self.next()
         self.later(2500, run)
+
+    def edges(self):
+        # Every visible widget whose top or bottom edge lies near the header bar's bottom edge.
+        from qt.core import QPoint, QWidget
+        hb = self.gui.search_bar
+        y = hb.mapTo(self.gui, QPoint(0, hb.height())).y()
+        print('EDGE header bottom at y =', y, flush=True)
+        for w in self.gui.findChildren(QWidget):
+            if not w.isVisible() or w.isWindow():
+                continue
+            top = w.mapTo(self.gui, QPoint(0, 0)).y()
+            bottom = top + w.height()
+            if abs(top - y) <= 3 or abs(bottom - y) <= 3 or (w.height() <= 4 and abs(top - y) <= 12):
+                print('EDGE', type(w).__name__, w.objectName(), 'top', top, 'h', w.height(), 'w', w.width(),
+                      'ss' if w.styleSheet() else '', flush=True)
+        self.next()
 
     def layoutmenu(self):
         from calibre.gui2.layout_menu import LayoutMenu

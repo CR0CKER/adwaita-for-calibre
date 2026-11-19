@@ -38,6 +38,12 @@ def install(gui):
             p = QPainter(self)
             r = self.rect()
             p.fillRect(r, QColor(t['view_bg']))
+            if min(r.width(), r.height()) <= self.COLLAPSED_SIZE:
+                # A collapsed handle stands in for a hidden pane (the 2 px stub above the book
+                # area when Quickview is hidden): no divider, or it reads as a line under the
+                # header bar.
+                p.end()
+                return
             line = _sidebar_border(dark)
             parent = self.parentWidget()
             if self.orientation is Qt.Orientation.Vertical:
