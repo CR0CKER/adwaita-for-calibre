@@ -27,7 +27,7 @@ class Shots(InterfaceAction):
             ('main', self.main), ('focus', self.focus), ('statusbar', self.statusbar), ('hover', self.hover),
             ('layoutmenu', self.layoutmenu), ('scrolled', self.scrolled),
             ('sidebar', self.sidebar), ('perf', self.perf),
-            ('edges', self.edges),
+            ('edges', self.edges), ('toggles', self.toggles),
             ('menu', self.menu),
             ('menus', self.menus), ('grid', self.grid),
             ('prefs', self.prefs), ('metadata', self.metadata), ('news', self.news),
@@ -161,6 +161,26 @@ class Shots(InterfaceAction):
                 print('EDGE', type(w).__name__, w.objectName(), 'top', top, 'h', w.height(), 'w', w.width(),
                       'ss' if w.styleSheet() else '', flush=True)
         self.next()
+
+    def toggles(self):
+        # Hide and re-show panes through calibre's own layout buttons; report geometry.
+        buttons = {b.label: b for b in getattr(self.gui, 'layout_buttons', [])}
+        names = [n for n in ('Tag browser', 'Book details', 'Cover browser') if n in buttons]
+        seq = [(n, v) for n in names for v in (not buttons[n].isChecked(), buttons[n].isChecked())]
+
+        def step():
+            if not seq:
+                self.next()
+                return
+            name, visible = seq.pop(0)
+            b = buttons[name]
+            if b.isChecked() != visible:
+                b.click()
+            stack = self.gui.library_view.alternate_views.stack
+            state = 'visible' if visible else 'hidden'
+            self.later(500, lambda: (print('TOGGLE', name, state, 'stack', stack.geometry(), flush=True),
+                                     step()))
+        step()
 
     def layoutmenu(self):
         from calibre.gui2.layout_menu import LayoutMenu

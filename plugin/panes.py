@@ -30,6 +30,12 @@ def _sidebar_border(dark):
 def install(gui):
     from calibre.gui2.central import SplitterHandle
 
+    # calibre keeps a 2 px divider for each hidden pane (cover browser, Quickview, side panels).
+    # It is a separate strip the content cannot scroll under, so above the book area it showed as
+    # a dark line under the header bar. Hidden panes take no space now; they reopen from the
+    # Layout button or their shortcut, as before.
+    SplitterHandle.COLLAPSED_SIZE = 0
+
     if not getattr(SplitterHandle, '_adwaita_patched', False):
         def paint(self, ev):
             from qt.core import QApplication
@@ -68,3 +74,6 @@ def install(gui):
             w.do_layout(w.rect())
     for h in gui.findChildren(SplitterHandle):
         h.update()
+    container = getattr(gui, 'layout_container', None)
+    if container is not None and hasattr(container, 'relayout'):
+        container.relayout()
