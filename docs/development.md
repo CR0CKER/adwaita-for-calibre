@@ -21,7 +21,7 @@
 | `plugin/images/` | Adwaita SVGs recoloured at runtime (arrows, check marks, window buttons, view switcher) |
 | `plugin/icons/` | **Generated** by `scripts/build_icons.py`; committed so the zip builds without calibre |
 | `icons/mapping.py` | calibre icon name → Adwaita symbolic icon (or `hicolor:` / `local:`), plus what stays |
-| `icons/extra/` | The nine symbols drawn for this plugin |
+| `icons/extra/` | The nine symbols drawn for this plugin, plus GNOME Settings' cog (CC0, vendored so builds and CI need only adwaita-icon-theme) |
 | `scripts/dev/` | Screenshot/measurement harness (dev-only plugin + `run.sh`), dev library builders, headless icon install |
 
 ## How calibre is hooked

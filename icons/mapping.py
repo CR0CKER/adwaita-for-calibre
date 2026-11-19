@@ -91,7 +91,7 @@ MAPPING = {
     'fts.png': 'actions/system-search',
     # The search field's advanced-search button: a cog, not a second hamburger next to the
     # main menu. GNOME's cog is the Settings app icon (gnome-control-center, CC0 icons).
-    'gear.png': 'hicolor:apps/org.gnome.Settings',
+    'gear.png': 'local:cog',  # GNOME Settings' cog, vendored in icons/extra/ (CC0)
     'generic-library.png': 'legacy/accessories-dictionary',
     'grid.png': 'actions/view-grid',
     'h-ellipsis.png': 'actions/view-more-horizontal',
