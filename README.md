@@ -3,13 +3,9 @@
 A [calibre](https://calibre-ebook.com) plugin that makes calibre look and feel like a native GNOME
 app: libadwaita's colours, controls and layout, GNOME's symbolic icons, and a single header bar.
 
-| Before | After |
+| Light | Dark |
 |---|---|
-| ![calibre with its default look](docs/screenshots/before-dark.png) | ![calibre with Adwaita for calibre, dark](docs/screenshots/grid-dark.png) |
-
-| Light | Bookshelf view |
-|---|---|
-| ![Light mode](docs/screenshots/grid-light.png) | ![Bookshelf view, light](docs/screenshots/bookshelf-light.png) |
+| ![calibre with Adwaita for calibre, light](docs/screenshots/light.png) | ![calibre with Adwaita for calibre, dark](docs/screenshots/dark.png) |
 
 ## What it changes
 
@@ -50,10 +46,6 @@ were drawn in the same style. File-format icons, logos and status dots stay cali
 **Integrated title bar (optional, experimental).** The header bar becomes the window's title bar,
 with GNOME window buttons, rounded corners and shadow; drag it to move, resize from the edges,
 snapping and tiling work. Needs calibre on X11 or XWayland, see below.
-
-| Edit metadata | Context menu | Book list |
-|---|---|---|
-| ![](docs/screenshots/edit-metadata-light.png) | ![](docs/screenshots/context-menu-light.png) | ![](docs/screenshots/list-dark.png) |
 
 ## Install
 
