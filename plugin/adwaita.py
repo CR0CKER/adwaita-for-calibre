@@ -147,6 +147,7 @@ def tokens(dark, accent=DEFAULT_ACCENT):
     t['button_active'] = over(0.30)
     t['trough'] = over(0.15)
     t['separator'] = over(0.30)  # split-button divider in header bars
+    t['popover_outline'] = rgba('#000000', 0.14)
     # AdwToggleGroup: --active-toggle-bg-color
     t['active_toggle'] = rgba('#ffffff', 0.20) if dark else '#ffffff'
     t['slider'] = over(0.20)

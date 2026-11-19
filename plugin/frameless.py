@@ -14,11 +14,10 @@ painted shadow would count as part of the window there.
 import ctypes
 import ctypes.util
 
-from calibre_plugins.adwaita_for_calibre.main import debug, portal_read
+from calibre_plugins.adwaita_for_calibre.main import debug, portal_read, tracked_icon
 from qt.core import (
     QColor,
     QEvent,
-    QIcon,
     QObject,
     QPainter,
     QPainterPath,
@@ -307,7 +306,7 @@ def window_buttons(gui, header_layout, frame, image_dir):
         icon_name, fn = spec[n]
         b = QToolButton(header_layout.parentWidget())
         b.setObjectName('adwaita_window_button')
-        b.setIcon(QIcon(f'{image_dir}/{icon_name}.svg'))
+        tracked_icon(b, f'{icon_name}.svg')  # recoloured on live light/dark switches
         b.setIconSize(QSize(16, 16))
         b.setAutoRaise(True)
         b.setToolTip(n.capitalize())

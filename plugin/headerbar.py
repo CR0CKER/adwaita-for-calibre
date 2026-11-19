@@ -9,7 +9,7 @@ search row rather than the other way round. calibre still owns them: `BarsManage
 keeps toggling which one is visible, and `init_bars` refills them in place.
 """
 
-from calibre_plugins.adwaita_for_calibre.main import debug
+from calibre_plugins.adwaita_for_calibre.main import debug, tracked_icon
 from qt.core import QFrame, QIcon, QMenu, QSizePolicy, Qt, QToolButton
 
 # Main menu entries (calibre action names), in order; None is a separator.
@@ -157,7 +157,7 @@ def view_switcher(gui, parent, image_dir):
         b.setObjectName('adwaita_view_toggle')
         b.setCheckable(True)
         b.setAutoRaise(True)
-        b.setIcon(QIcon(f'{image_dir}/{icon}'))
+        tracked_icon(b, icon)  # recoloured on live light/dark switches
         b.setToolTip(tip)
         group.addButton(b)
         row.addWidget(b)

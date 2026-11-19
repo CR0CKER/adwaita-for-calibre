@@ -505,9 +505,12 @@ QMenuBar::item:selected {
 QMenu {
     background-color: @popover_bg@;
     color: @fg@;
-    border: 1px solid @border@;
+    /* libadwaita popover outline: black at 14 %, in both schemes. */
+    border: 1px solid @popover_outline@;
     border-radius: 12px;
     padding: 6px;
+    /* Room for the painted shadow (main.MENU_SHADOW). */
+    margin: 14px;
 }
 
 QMenu::item {

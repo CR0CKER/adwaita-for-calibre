@@ -218,6 +218,67 @@ class Theme:
         '''
 
 
+# Buttons whose icons the plugin renders itself (view switcher, window buttons). Their SVGs are
+# recoloured per light/dark mode, so they must be re-set when the scheme changes live.
+_TRACKED_ICONS = []
+_THEME = None
+
+
+def tracked_icon(button, filename):
+    """Set `button`'s icon to one of the plugin's recoloured images and keep it in sync."""
+    _TRACKED_ICONS.append((button, filename))
+    _apply_icon(button, filename)
+
+
+def _current_image_dir():
+    from qt.core import QApplication
+    dark = QApplication.instance().palette_manager.is_dark_theme
+    return _THEME.image_dir(dark, _THEME.tokens(dark))
+
+
+def _apply_icon(button, filename):
+    from qt.core import QIcon
+    if _THEME is not None:
+        button.setIcon(QIcon(f'{_current_image_dir()}/{filename}'))
+
+
+def refresh_tracked_icons():
+    alive = []
+    for button, filename in _TRACKED_ICONS:
+        try:
+            _apply_icon(button, filename)
+        except RuntimeError:
+            continue  # widget deleted
+        alive.append((button, filename))
+    _TRACKED_ICONS[:] = alive
+
+
+# libadwaita popover: border 1px rgb(0 0 0 / 14%), box-shadow 0 1px 5px 1px rgb(0 0 0 / 9%),
+# 0 2px 14px 3px rgb(0 0 0 / 5%). QSS has no box-shadow: menus get a transparent margin and the
+# shadow is painted into it before Qt draws the menu itself.
+MENU_SHADOW = 14
+
+
+def paint_menu_shadow(menu):
+    from qt.core import QColor, QPainter, QPainterPath, QRectF
+    p = QPainter(menu)
+    p.setRenderHint(QPainter.RenderHint.Antialiasing)
+    inner = QRectF(menu.rect()).adjusted(MENU_SHADOW, MENU_SHADOW, -MENU_SHADOW, -MENU_SHADOW)
+    for spread, dy, blur, alpha in ((1, 1, 5, 0.09), (3, 2, 14, 0.05)):
+        steps = max(1, blur // 2)
+        for i in range(steps):
+            grow = spread + blur * (i + 1) / steps
+            c = QColor(0, 0, 0)
+            c.setAlphaF(alpha / steps)  # rings overlap at the edge: total there = alpha
+            path = QPainterPath()
+            r = inner.adjusted(-grow, -grow + dy, grow, grow + dy)
+            path.addRoundedRect(r, 12 + grow, 12 + grow)
+            hole = QPainterPath()
+            hole.addRoundedRect(inner, 12, 12)
+            p.fillPath(path.subtracted(hole), c)
+    p.end()
+
+
 class EventFilter:
     """Gives popups a translucent window before they first show, so QSS corner radii work."""
 
@@ -227,9 +288,17 @@ class EventFilter:
 
         class Filter(QObject):
             def eventFilter(self, obj, ev):
-                if ev.type() == QEvent.Type.Polish and obj.isWidgetType() and obj.isWindow():
+                t = ev.type()
+                if t == QEvent.Type.Polish and obj.isWidgetType() and obj.isWindow():
                     if obj.metaObject().className() in ROUNDED_POPUPS:
                         obj.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+                elif obj.isWidgetType() and obj.metaObject().className() == 'QMenu':
+                    if t == QEvent.Type.Show:
+                        # The shadow margin (QSS) would push the menu's visible edge away from
+                        # where Qt placed it; move it back.
+                        obj.move(obj.x() - MENU_SHADOW, obj.y() - MENU_SHADOW + 1)
+                    elif t == QEvent.Type.Paint:
+                        paint_menu_shadow(obj)
                 return False
 
         return Filter()
@@ -240,6 +309,8 @@ def install(theme):
     from calibre.gui2 import gprefs
     from qt.core import QApplication, QFont
 
+    global _THEME
+    _THEME = theme
     app = QApplication.instance()
     pm = app.palette_manager
     if not pm.using_calibre_style:
@@ -260,6 +331,7 @@ def install(theme):
             try:
                 a = QApplication.instance()
                 a.setStyleSheet(a.styleSheet() + '\n' + theme.stylesheet(self.is_dark_theme))
+                refresh_tracked_icons()
             except Exception:
                 # Never take calibre down with us: fall back to its own look.
                 import traceback
