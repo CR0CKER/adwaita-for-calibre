@@ -28,4 +28,5 @@
 - Layout popup as a libadwaita popover.
 - Integrated title bar: anti-aliased corner overlay instead of masks, cursor fix, double-click
   detection, Wayland skipped.
+- Book covers as libadwaita cards (soft shadow + hairline) in the grid and details panel.
 - E-book viewer: Adwaita palettes and its "System" reading colour scheme (opt-out in Customize).

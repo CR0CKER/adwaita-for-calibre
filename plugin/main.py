@@ -489,9 +489,10 @@ class AdwaitaAction(InterfaceAction):
             self.theme = Theme(resources)
             self.active = install(self.theme)
             if self.active:
-                from calibre_plugins.adwaita_for_calibre import bookshelf, layoutmenu
+                from calibre_plugins.adwaita_for_calibre import bookshelf, covers, layoutmenu
                 bookshelf.install(self.theme)
                 layoutmenu.install()
+                covers.install()
             if self.active and prefs()['integrated_titlebar']:
                 from calibre_plugins.adwaita_for_calibre import frameless
                 frameless.prepare(self.gui)
