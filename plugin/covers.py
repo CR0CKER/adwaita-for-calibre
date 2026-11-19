@@ -10,6 +10,9 @@ follow calibre's cover corner radius setting.
 
 from qt.core import QColor, QPainter, QPainterPath, QRect, QRectF, QSize, Qt
 
+# Room around the details-panel cover for the shadow: spread + offset + blur of the wider layer.
+SHADOW_ROOM = 10
+
 # (spread, y offset, blur, alpha) per libadwaita shadow layer.
 LAYERS = ((1, 1, 3, 0.07), (2, 2, 6, 0.03))
 
@@ -88,7 +91,23 @@ def install():
         p.end()
         original_details(self, ev)
 
+    original_layout = CoverView.do_layout
+
+    def details_layout(self):
+        # calibre sizes the cover to fill the view exactly, which leaves no room for the card
+        # shadow (it was clipped left and right). Fit it inside the view minus SHADOW_ROOM.
+        original_layout(self)
+        r = self.rect()
+        avail = QSize(max(1, r.width() - 2 * SHADOW_ROOM), max(1, r.height() - 2 * SHADOW_ROOM))
+        size = QSize(self.current_pixmap_size)
+        if size.width() > avail.width() or size.height() > avail.height():
+            size.scale(avail, Qt.AspectRatioMode.KeepAspectRatio)
+            self.pwidth, self.pheight = size.width(), size.height()
+            self.current_pixmap_size = size
+            self.animation.setEndValue(size)
+
     CoverDelegate.paint_cover = paint_cover
     CoverView.paintEvent = details_paint
+    CoverView.do_layout = details_layout
     CoverDelegate._adwaita_patched = True
     return True
