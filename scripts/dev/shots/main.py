@@ -583,6 +583,15 @@ class Shots(InterfaceAction):
                 QApplication.sendEvent(b, QEvent(QEvent.Type.Enter))
                 self.check(b.graphicsEffect().opacity() == 1.0, 'metadata: row button full on hover')
                 QApplication.sendEvent(b, QEvent(QEvent.Type.Leave))
+            # Padding inside the formats list and the comments editor: their viewports are inset.
+            from calibre.gui2.comments_editor import EditorWidget
+            from calibre.gui2.metadata.basic_widgets import FormatList
+            for cls, need in ((FormatList, 6), (EditorWidget, 8)):
+                w = d.findChild(cls)
+                if w is not None:
+                    inset = w.viewport().geometry().top()
+                    self.check(inset >= need, f'metadata: {cls.__name__} padded ({inset}px >= {need}px)')
+            d.comments.html = '<p>' + 'A comment long enough to wrap onto several lines. ' * 12 + '</p>'
             self.later(300, lambda: (self.save(d, 'mdcheck'), d.reject(), self.later(500, self.next)))
         self.later(2500, run)
         self.gui.iactions['Edit Metadata'].edit_metadata(False)

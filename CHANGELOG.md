@@ -16,6 +16,8 @@ All notable changes to this project are documented here. The format follows
 - The status bar's Layout button is hidden: the header bar's toggles replace it, and its popup
   (Quickview, search bar, wide/narrow layout) opens from the ☰ main menu, *Layout…*, dropping
   from the top right.
+- Edit metadata: padding inside the formats list and the comments editor (and its HTML source
+  view).
 - Edit metadata: no lines between the cover, form and comments columns (the splitters stay
   draggable).
 
