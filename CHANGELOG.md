@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- The scroll shadows in the tag browser and book details run edge to edge across the pane
+  instead of stopping at the content's padding. Beside a side-by-side cover they still stop at
+  the text.
+
 ## [0.2.0] - 2026-11-19
 
 ### Changed
