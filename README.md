@@ -116,4 +116,3 @@ from libadwaita (LGPL-2.1-or-later).
 GNOME is a trademark of the GNOME Foundation. This plugin is designed for use with GNOME but is
 not affiliated with or endorsed by the GNOME Foundation or the GNOME Project, nor by calibre.
 
-Developed with the assistance of Claude Code.
