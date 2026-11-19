@@ -20,7 +20,8 @@ First release.
 - One header bar: toolbar and search row merged; centred search with Virtual library and saved
   searches; List / Grid / Bookshelf view switcher; ☰ main menu; split buttons as AdwSplitButton;
   16 px "Small" toolbar icons; Preferences can be removed from the toolbar; sidebar toggles at
-  both ends of the header bar for the tag browser and book details, which slide in and out.
+  both ends of the header bar for the tag browser and book details, which slide in and out; a
+  cover-browser toggle beside the view switcher.
 - Pane | content | pane layout: tag browser and book details in the book area's colour, set off by
   hairline dividers instead of splitter grips; hidden panes take no space.
 - Tag browser: rounded rows, 16 px expanders, readable hover text, action-bar Configure / Find.

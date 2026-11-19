@@ -36,7 +36,8 @@ class Shots(InterfaceAction):
             ('layoutmenu', self.layoutmenu), ('scrolled', self.scrolled),
             ('sidebar', self.sidebar), ('perf', self.perf),
             ('edges', self.edges), ('details', self.details), ('toggles', self.toggles),
-            ('sidetoggle', self.sidetoggle), ('slide', self.slide), ('coverroom', self.coverroom),
+            ('sidetoggle', self.sidetoggle), ('covertoggle', self.covertoggle), ('slide', self.slide),
+            ('coverroom', self.coverroom),
             ('reset', self.reset),
             ('menu', self.menu),
             ('menus', self.menus), ('grid', self.grid),
@@ -278,6 +279,30 @@ class Shots(InterfaceAction):
             self.later(int(os.environ.get('SLIDE_MID_MS') or 90), mid)
             self.later(500, end)
         step()
+
+    def covertoggle(self):
+        # The header bar's cover-browser toggle follows calibre's button and shows/hides the strip.
+        from qt.core import QToolButton
+        b = self.gui.search_bar.findChild(QToolButton, 'adwaita_cover_toggle')
+        self.check(b is not None, 'cover browser toggle in the header bar')
+        if b is None:
+            self.next()
+            return
+        cb = self.gui.layout_container.cover_browser
+        start = b.isChecked()
+        b.click()
+
+        def after_first():
+            self.check(b.isChecked() != start and b.isChecked() == b._adwaita_target.isChecked(),
+                       'cover browser toggle follows the strip')
+            shown = 'shown' if b.isChecked() else 'hidden'
+            self.check(cb.isVisible() == b.isChecked(), f'cover browser {shown}')
+            if b.isChecked():
+                self.save(self.gui, 'covertoggle-on')
+            b.click()
+            self.later(500, lambda: (self.check(b.isChecked() == start and cb.isVisible() == start,
+                                                'cover browser back to its state'), self.next()))
+        self.later(700, after_first)
 
     def toggles(self):
         # Hide and re-show panes through calibre's own layout buttons; report geometry.

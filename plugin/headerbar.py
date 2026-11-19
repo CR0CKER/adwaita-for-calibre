@@ -78,6 +78,11 @@ def merge(gui, image_dir):
     if switcher is not None:
         lay.addSpacing(6)
         lay.addWidget(switcher)
+    # The cover browser is a strip above any of the views, not a view itself: an on/off toggle
+    # beside the switcher rather than a fourth segment.
+    covers = sidebar_toggle(gui, sb, 'cover_browser_button', 'cover-browser.svg', 'adwaita_cover_toggle')
+    if covers is not None:
+        lay.addWidget(covers)
     # Sort and Group by only show in the grid/bookshelf views. Next to the switcher, keeping
     # their space while hidden: the empty slot merges with the free space before the main menu,
     # so switching views never resizes the search field or moves other buttons.
@@ -133,7 +138,7 @@ def merge(gui, image_dir):
     return True
 
 
-def sidebar_toggle(gui, parent, attr, icon):
+def sidebar_toggle(gui, parent, attr, icon, name='adwaita_sidebar_toggle'):
     """A header-bar toggle for one side pane (libadwaita: a flat toggle button with
     sidebar-show-symbolic). It clicks calibre's own layout button, so the pane state, its saved
     visibility, the Layout popup and the Shift+Alt shortcuts all stay the single source of truth;
@@ -144,7 +149,7 @@ def sidebar_toggle(gui, parent, attr, icon):
         debug('no layout button', attr)
         return None
     b = QToolButton(parent)
-    b.setObjectName('adwaita_sidebar_toggle')
+    b.setObjectName(name)
     b._adwaita_target = target
     b.setCheckable(True)
     b.setAutoRaise(True)

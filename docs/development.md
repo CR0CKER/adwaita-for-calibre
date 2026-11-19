@@ -19,7 +19,7 @@
 | `plugin/statusbar.py` | Status bar text without the version banner |
 | `plugin/viewer.py` | Palettes and "System" colour scheme for the e-book viewer |
 | `plugin/config.py` | The *Customize plugin* dialog: icon set install/restore, integrated title bar, viewer |
-| `plugin/images/` | Adwaita SVGs recoloured at runtime (arrows, check marks, window buttons, view switcher) |
+| `plugin/images/` | Adwaita SVGs recoloured at runtime (arrows, check marks, window buttons, view switcher, sidebar toggles); `cover-browser-symbolic.svg` is drawn for this plugin |
 | `plugin/icons/` | **Generated** by `scripts/build_icons.py`; committed so the zip builds without calibre |
 | `icons/mapping.py` | calibre icon name → Adwaita symbolic icon (or `hicolor:` / `local:`), plus what stays |
 | `icons/extra/` | The nine symbols drawn for this plugin, plus GNOME Settings' cog (CC0, vendored so builds and CI need only adwaita-icon-theme) |
@@ -52,7 +52,9 @@
   `alternate_views.stack.currentChanged`; calibre switches the stack page *before* updating
   `current_view`, so map the stack index through `stack_positions`. The sidebar toggles click
   calibre's own layout buttons (`layout_container.tag_browser_button` / `book_details_button`)
-  and follow their `toggled` signal, so calibre's saved visibility stays the only state.
+  and follow their `toggled` signal, so calibre's saved visibility stays the only state. The
+  cover browser gets the same kind of toggle beside the view switcher: in calibre it is a strip
+  above any view, not a view, so it is on/off rather than a fourth segment.
 - **Toolbars & menus preferences.** Invisible actions (this plugin's, any plugin's) must list
   `searchbar` in `dont_add_to`, or that page crashes on `None.replace`. Its Preferences check
   accepts the main menu while the header bar is merged.
@@ -112,7 +114,7 @@ Steps in `scripts/dev/shots/main.py`: `main`, `focus`, `statusbar`, `hover`, `la
 `scrolled`, `sidebar`, `perf` (times grid and window repaints), `edges` (lists widgets at the
 header's edge), `toggles` (hides/shows panes), `menu`, `menus` (every menu), `grid`, `prefs`,
 `metadata`, `news`, `details` (scrolled book description), `sidetoggle` (header-bar sidebar
-toggles), `slide` (pane slide; `SLIDE_MID_MS`, `SLIDE_LIST`), `coverroom` (details cover shadow
+toggles), `covertoggle` (cover-browser toggle), `slide` (pane slide; `SLIDE_MID_MS`, `SLIDE_LIST`), `coverroom` (details cover shadow
 not clipped), `flip` (live light/dark switch), `views`, `closebtn`, `prefcheck`.
 
 `run.sh` uses a throwaway profile (`.dev/config`, `.dev/library`) and never touches the real

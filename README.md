@@ -20,7 +20,7 @@ changes when you change it). The GNOME interface font is used unless you set one
 
 **One header bar.** The toolbar and the search row become a single GNOME header bar: your actions
 on the left, a centred search field with Virtual library and saved searches, a List · Grid ·
-Bookshelf view switcher, and a ☰ main menu (Preferences, all actions, Help, Restart). Sidebar
+Bookshelf view switcher with a cover-browser toggle beside it, and a ☰ main menu (Preferences, all actions, Help, Restart). Sidebar
 toggles at either end show and hide the tag browser and the book details pane, which slide in
 and out (Shift+Alt+T and Shift+Alt+D do the same). Split
 buttons look like GNOME's split buttons, "Small" toolbar icons are GNOME's 16 px, and
@@ -134,7 +134,8 @@ GPL-3.0, see [LICENSE](LICENSE). The icon set and indicator images are GNOME's A
 icons from adwaita-icon-theme 49.0 (LGPL-3.0-only or CC-BY-SA-3.0, GNOME Project), recoloured;
 the search field's cog is GNOME Settings' symbolic icon (gnome-control-center 49, CC0-1.0); nine
 symbols GNOME has no icon for (books, tag, ++, −−, text colour, superscript, subscript, heading,
-horizontal rule) were drawn for this plugin in the same style (GPL-3.0). Colour values are taken
+horizontal rule) and the cover-browser toggle's icon were drawn for this plugin in the same style
+(GPL-3.0). Colour values are taken
 from libadwaita (LGPL-2.1-or-later).
 
 GNOME is a trademark of the GNOME Foundation. This plugin is designed for use with GNOME but is
