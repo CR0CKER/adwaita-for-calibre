@@ -815,6 +815,14 @@ QSplitter::handle {
     background: @border@;
 }
 
+/* Edit metadata: one surface whose columns (cover | form | comments) are separated by space, as
+ * in GNOME dialogs, not by lines. The handles stay draggable. Must follow the rule above. */
+MetadataSingleDialog Splitter::handle,
+MetadataSingleDialogAlt1 Splitter::handle,
+MetadataSingleDialogAlt2 Splitter::handle {
+    background: transparent;
+}
+
 QSplitter::handle:horizontal {
     width: 1px;
 }

@@ -13,6 +13,8 @@ All notable changes to this project are documented here. The format follows
   middle; *Languages* ends where the other fields do; the per-row buttons (clear, list, swap,
   copy) are dimmed until hovered or focused; the sort fields lose their green/red outline and
   show their state as a green check or amber warning icon.
+- Edit metadata: no lines between the cover, form and comments columns (the splitters stay
+  draggable).
 
 ## [0.1.0] - 2026-11-19
 
