@@ -507,7 +507,8 @@ class AdwaitaAction(InterfaceAction):
             return
         try:
             install_toolbar_size(self.gui)
-            from calibre_plugins.adwaita_for_calibre import shade, statusbar
+            from calibre_plugins.adwaita_for_calibre import panes, shade, statusbar
+            panes.install(self.gui)
             shade.install(self.gui)
             statusbar.install(self.gui)
             from calibre_plugins.adwaita_for_calibre import viewer

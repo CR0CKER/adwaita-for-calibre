@@ -110,8 +110,23 @@ QToolButton::menu-indicator {
 /* Tag browser pane as a GNOME sidebar (the tree itself is styled through calibre's
  * tree_view_hover_style hook, see main.Theme.hover_style). */
 TagBrowserWidget,
-TagBrowserBar {
+TagBrowserBar,
+BookDetails,
+BookDetails CoverView,
+BookDetails QTextBrowser {
     background-color: @sidebar_bg@;
+}
+
+/* Book details as the right-hand sidebar (panes.py): no inner cover/text divider line. */
+BookDetails::handle,
+BookDetails::handle:horizontal,
+BookDetails::handle:vertical {
+    /* Must out-rank the generic QSplitter::handle rule further down. */
+    background: transparent;
+}
+
+BookDetails QTextBrowser {
+    border: none;
 }
 
 /* Its bottom bar (Configure, Find) as a libadwaita action bar: full-size flat buttons, and a

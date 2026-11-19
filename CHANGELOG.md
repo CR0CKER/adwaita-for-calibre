@@ -28,5 +28,7 @@
 - Layout popup as a libadwaita popover.
 - Integrated title bar: anti-aliased corner overlay instead of masks, cursor fix, double-click
   detection, Wayland skipped.
+- Three-pane layout as libadwaita: book details as a sidebar like the tag browser, 1 px sidebar
+  borders instead of splitter grips, 12 px insets in the details pane.
 - Book covers as libadwaita cards (soft shadow + hairline) in the grid and details panel.
 - E-book viewer: Adwaita palettes and its "System" reading colour scheme (opt-out in Customize).
