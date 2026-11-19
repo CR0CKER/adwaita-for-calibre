@@ -1,6 +1,6 @@
 # Adwaita for calibre
 
-Last updated: 2026-11-19 07:12 PM CET
+Last updated: 2026-11-19 09:36 PM CET
 
 [![ci](https://github.com/CR0CKER/adwaita-for-calibre/actions/workflows/ci.yml/badge.svg)](https://github.com/CR0CKER/adwaita-for-calibre/actions/workflows/ci.yml)
 [![License: GPL-3.0](https://img.shields.io/github/license/CR0CKER/adwaita-for-calibre)](LICENSE)
@@ -20,7 +20,8 @@ changes when you change it). The GNOME interface font is used unless you set one
 
 **One header bar.** The toolbar and the search row become a single GNOME header bar: your actions
 on the left, a centred search field with Virtual library and saved searches, a List · Grid ·
-Bookshelf view switcher with a cover-browser toggle beside it, and a ☰ main menu (Preferences, all actions, Help, Restart). Sidebar
+Bookshelf view switcher with a cover-browser toggle beside it, and a ☰ main menu (Preferences,
+Layout, all actions, Help, Restart). Sidebar
 toggles at either end show and hide the tag browser and the book details pane, which slide in
 and out (Shift+Alt+T and Shift+Alt+D do the same). Split
 buttons look like GNOME's split buttons, "Small" toolbar icons are GNOME's 16 px, and
@@ -34,14 +35,15 @@ tabs, overlay scroll bars that fade out, flat column headers, cards for group bo
 and are set off from it by hairlines instead of splitter grips. The tag browser gets rounded rows,
 GNOME expanders and an action bar for Configure / Find. Shadows appear under the header bar and
 above the status bar only while content is scrolled beneath them. The status bar shows just the
-book count and selection.
+book count and selection; its Layout button moves to the main menu.
 
 **Books.** Covers are drawn as cards with a soft shadow, so white covers stand out on a white
 grid. The bookshelf view uses flat Adwaita colours instead of wood.
 
-**Dialogs and popups.** The Layout popup is a popover; Edit metadata gets consistent icon sizes,
-a cover card, card-style formats list and comments editor, and GNOME's success/error colours for
-the sort fields.
+**Dialogs and popups.** The Layout popup is a popover. Edit metadata becomes one calm surface: a
+top-aligned form, consistent icon sizes, a cover card, card-style formats list and comments
+editor, quiet per-row buttons that light up on hover, and the sort fields' state as a small green
+or amber icon instead of a coloured outline.
 
 **The e-book viewer** (optional, on by default): Adwaita colours for its panels and for the
 "System" reading colour scheme, which follows light/dark and the accent.

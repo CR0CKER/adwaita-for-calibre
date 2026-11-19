@@ -37,6 +37,6 @@ PY
     -c "from calibre.utils.config import dynamic; dynamic.set('welcome_wizard_was_run', True)" >/dev/null
 run --env=ADWAITA_SHOT_DIR="$DEV/shots" --env=ADWAITA_SHOT_TAG="$TAG" \
     --env=ADWAITA_SHOT_ONLY="${ONLY:-}" --env=ADWAITA_SHOT_WIDTH="${WIDTH:-0}" --env=ADWAITA_CALIBRE_DEBUG=1 \
-    --env=ADWAITA_SMOKE="${ADWAITA_SMOKE:-}" --env=ADWAITA_SLIDE_TIMING="${ADWAITA_SLIDE_TIMING:-}" --env=SLIDE_LIST="${SLIDE_LIST:-}" --env=SLIDE_MID_MS="${SLIDE_MID_MS:-}" \
+    --env=ADWAITA_SMOKE="${ADWAITA_SMOKE:-}" --env=ADWAITA_SLIDE_TIMING="${ADWAITA_SLIDE_TIMING:-}" --env=SLIDE_LIST="${SLIDE_LIST:-}" --env=SLIDE_MID_MS="${SLIDE_MID_MS:-}" --env=ADWAITA_TREE="${ADWAITA_TREE:-}" \
     com.calibre_ebook.calibre --with-library "$DEV/library" --no-update-check 2>&1 \
   | grep -vE 'QRhi|Vulkan|GPU vendor|^$' | tail -n "${TAIL:-40}"

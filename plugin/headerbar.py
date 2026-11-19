@@ -13,7 +13,9 @@ from calibre_plugins.adwaita_for_calibre.main import debug, tracked_icon
 from qt.core import QFrame, QIcon, QMenu, QSizePolicy, Qt, QToolButton
 
 # Main menu entries (calibre action names), in order; None is a separator.
-MAIN_MENU = ('Preferences', 'All GUI actions', None, 'Help', 'Restart')
+# '__layout__' is calibre's Layout popup (Quickview, search bar, wide/narrow, ...), whose status-bar
+# button the header bar's toggles replace.
+MAIN_MENU = ('Preferences', '__layout__', 'All GUI actions', None, 'Help', 'Restart')
 SEARCH_MAX_WIDTH = 880
 SEARCH_STRETCH = 4  # logical px; GNOME header-bar search entries are roughly this wide
 
@@ -111,6 +113,10 @@ def merge(gui, image_dir):
         if name is None:
             menu.addSeparator()
             continue
+        if name == '__layout__':
+            if getattr(gui, 'layout_button_menu', None) is not None:
+                menu.addAction(QIcon.ic('layout.png'), 'Layout…', lambda: open_layout_popup(gui, btn))
+            continue
         ia = gui.iactions.get(name)
         if ia is None:
             continue
@@ -123,6 +129,7 @@ def merge(gui, image_dir):
             menu.addAction(qa)
     btn.setMenu(menu)
     btn.setStyleSheet('QToolButton::menu-indicator { image: none; width: 0; }')
+    hide_status_layout_button(gui)
     # ... preceded by the toggle for the right-hand sidebar: book details.
     right = sidebar_toggle(gui, sb, 'book_details_button', 'sidebar-right.svg')
     if right is not None:
@@ -136,6 +143,29 @@ def merge(gui, image_dir):
     bm.update_bars()
     debug('header bar merged')
     return True
+
+
+def hide_status_layout_button(gui):
+    """The status bar's Layout button: the header bar's toggles cover its common uses and the main
+    menu opens its popup. calibre re-shows it when its layout preferences change (it calls
+    setVisible from Python), so pin it hidden on the instance."""
+    b = getattr(gui, 'layout_button', None)
+    if b is None:
+        return
+    b.setVisible = lambda visible: QToolButton.setVisible(b, False)
+    QToolButton.setVisible(b, False)
+
+
+def open_layout_popup(gui, anchor):
+    """calibre's Layout popup, dropped from the top right under the header bar instead of
+    above the (hidden) status-bar button."""
+    m = gui.layout_button_menu
+    m.show()
+    inner = m.inner
+    bar = gui.search_bar
+    y = bar.mapTo(gui, bar.rect().bottomLeft()).y() + 6  # 6 px below the header bar, like a popover
+    right = anchor.mapTo(gui, anchor.rect().topRight()).x()
+    inner.move(max(0, min(gui.width() - inner.width() - 8, right - inner.width())), y)
 
 
 def sidebar_toggle(gui, parent, attr, icon, name='adwaita_sidebar_toggle'):

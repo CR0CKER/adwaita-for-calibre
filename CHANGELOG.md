@@ -6,6 +6,23 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-19
+
+### Changed
+
+- Edit metadata: one surface (calibre's scroll area no longer paints a darker panel inside a
+  lighter frame); the fields start right under the cover actions instead of floating to the
+  middle; *Languages* ends where the other fields do; the per-row buttons (clear, list, swap,
+  copy) are dimmed until hovered or focused; the sort fields lose their green/red outline and
+  show their state as a green check or amber warning icon.
+- The status bar's Layout button is hidden: the header bar's toggles replace it, and its popup
+  (Quickview, search bar, wide/narrow layout) opens from the ☰ main menu, *Layout…*, dropping
+  from the top right.
+- Edit metadata: padding inside the formats list and the comments editor (and its HTML source
+  view).
+- Edit metadata: no lines between the cover, form and comments columns (the splitters stay
+  draggable).
+
 ## [0.1.0] - 2026-11-19
 
 First release.
@@ -62,5 +79,6 @@ First release.
 - The integrated title bar's X11 connection is closed when calibre quits, and X11 calls after
   that are skipped instead of reaching libX11 with a null display (audit L6).
 
-[Unreleased]: https://github.com/CR0CKER/adwaita-for-calibre/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/CR0CKER/adwaita-for-calibre/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/CR0CKER/adwaita-for-calibre/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/CR0CKER/adwaita-for-calibre/releases/tag/v0.1.0

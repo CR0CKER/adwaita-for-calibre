@@ -123,11 +123,18 @@ FormatList {
     background-color: @view_bg@;
     border: 1px solid @border@;
     border-radius: 9px;
+    padding: 6px;
 }
 
 QGroupBox QTextEdit[readOnly="false"] {
     border: none;
     border-radius: 6px;
+}
+
+/* Edit metadata's comments editor and its HTML source view: text inset from the card's edge. */
+EditorWidget,
+CommentsEdit QPlainTextEdit {
+    padding: 8px 10px;
 }
 
 /* Book details as the right-hand sidebar (panes.py): no inner cover/text divider line. */
@@ -813,6 +820,14 @@ QStatusBar::item {
 
 QSplitter::handle {
     background: @border@;
+}
+
+/* Edit metadata: one surface whose columns (cover | form | comments) are separated by space, as
+ * in GNOME dialogs, not by lines. The handles stay draggable. Must follow the rule above. */
+MetadataSingleDialog Splitter::handle,
+MetadataSingleDialogAlt1 Splitter::handle,
+MetadataSingleDialogAlt2 Splitter::handle {
+    background: transparent;
 }
 
 QSplitter::handle:horizontal {
