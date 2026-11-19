@@ -6,55 +6,104 @@
 |---|---|
 | `plugin/adwaita.py` | Pure Python: libadwaita colour tokens, OKLab accent maths, template rendering, portal value parsing. Unit-tested |
 | `plugin/adwaita.qss` | The stylesheet template. Tokens are names between two `@`; `img` is the indicator image folder |
-| `plugin/main.py` | Qt glue: palette, stylesheet hook, popup translucency, font, accent watcher |
-| `plugin/config.py` | The *Customize plugin* dialog: install / restore the icon set |
-| `plugin/images/` | Adwaita SVGs recoloured at runtime for arrows and check marks |
-| `plugin/icons/` | **Generated** by `scripts/build_icons.py` (committed so the zip builds without calibre) |
-| `icons/mapping.py` | calibre icon name → Adwaita symbolic icon, plus what deliberately stays |
-| `scripts/dev/` | Screenshot harness (dev-only plugin + `run.sh`), headless icon install test |
+| `plugin/main.py` | Entry point and Qt glue: palette, stylesheet hook, popup translucency and shadows, font, accent watcher, plugin-rendered icons, toolbar icon size, sidebar styling, plugin prefs |
+| `plugin/headerbar.py` | Merges toolbar and search row into one header bar; view switcher; main menu; Preferences check |
+| `plugin/frameless.py` | Optional integrated title bar (X11/XWayland) |
+| `plugin/panes.py` | Sidebar \| content \| sidebar: details pane as sidebar, hairline splitters, hidden panes 0 px |
+| `plugin/shade.py` | Raised-bar shadows over the book area and the tag browser |
+| `plugin/covers.py` | Cover card shadow (grid, details pane), cached |
+| `plugin/bookshelf.py` | Flat Adwaita colours for the bookshelf view |
+| `plugin/layoutmenu.py` | Layout popup as a popover |
+| `plugin/metadata.py` | Edit metadata refinements |
+| `plugin/statusbar.py` | Status bar text without the version banner |
+| `plugin/viewer.py` | Palettes and "System" colour scheme for the e-book viewer |
+| `plugin/config.py` | The *Customize plugin* dialog: icon set install/restore, integrated title bar, viewer |
+| `plugin/images/` | Adwaita SVGs recoloured at runtime (arrows, check marks, window buttons, view switcher) |
+| `plugin/icons/` | **Generated** by `scripts/build_icons.py`; committed so the zip builds without calibre |
+| `icons/mapping.py` | calibre icon name → Adwaita symbolic icon (or `hicolor:` / `local:`), plus what stays |
+| `icons/extra/` | The nine symbols drawn for this plugin |
+| `scripts/dev/` | Screenshot/measurement harness (dev-only plugin + `run.sh`), dev library builders, headless icon install |
 
 ## How calibre is hooked
 
-- `calibre.gui2.palette.dark_palette` / `light_palette` are module functions that
-  `PaletteManager` calls each time the palette is (re)built, so replacing them is enough. The
-  initial palette is built before plugins load, so `install()` ends with `refresh_palette()`.
-- `PaletteManager.on_palette_change` calls `app.setStyleSheet()` with calibre's own rules every
-  time, wiping anything set earlier. The plugin wraps it and appends its stylesheet. The wrapper
-  catches exceptions, so a broken stylesheet leaves calibre's look instead of crashing.
-- `PaletteManager.tree_view_hover_style` (the tag browser's gradient hover) is replaced.
-- Rounded popups need `WA_TranslucentBackground` before their first show; an application event
-  filter sets it on `QMenu`, `QTipLabel` and `QComboBoxPrivateContainer` at `Polish`.
-- Accent and font come from `org.freedesktop.portal.Settings` over QtDBus (works in the Flatpak
-  sandbox). The `SettingChanged` signal re-applies the accent live.
-- Icons: calibre loads user themes from `<config>/icons-{any,dark,light}.rcc`, built with
+- **Palette and stylesheet.** `calibre.gui2.palette.dark_palette` / `light_palette` are module
+  functions `PaletteManager` calls each time the palette is (re)built, so replacing them is
+  enough. The initial palette is built before plugins load, so `install()` ends with
+  `refresh_palette()`. `PaletteManager.on_palette_change` calls `app.setStyleSheet()` with
+  calibre's own rules every time; the plugin wraps it, appends its stylesheet and re-applies the
+  icons it renders itself (they are recoloured per light/dark). The wrapper catches exceptions,
+  so a broken stylesheet leaves calibre's look instead of crashing.
+- **Overlay scroll bars.** calibre's style (a Fusion proxy) supports `SH_ScrollBar_Transient` but
+  only enables it on macOS; the plugin creates `CalibreStyle(1)`. The stylesheet must not style
+  `QScrollBar`, or Qt's stylesheet engine draws them, permanently visible.
+- **Popups.** Rounded popups need `WA_TranslucentBackground` before their first show (an event
+  filter sets it at `Polish`). Menus get a transparent margin (QSS) into which the filter paints
+  libadwaita's popover shadow, and are moved back by that margin when shown.
+- **Accent and font** come from `org.freedesktop.portal.Settings` over QtDBus (works in the
+  Flatpak sandbox); `SettingChanged` re-applies the accent live.
+- **Plugin lifecycle.** `genesis()` runs before the main window exists (palette, style, frameless
+  flags); `initialization_complete()` after it is shown (header bar, panes, shadows, status bar).
+  The search row does not exist yet at `genesis()`.
+- **Header bar.** The main toolbars (library and device; calibre shows one at a time) are moved
+  into calibre's search row (`gui.search_bar`), which becomes the header bar. Sort and Group by
+  keep their space when hidden (`setRetainSizeWhenHidden`), so switching views never moves
+  anything. The view switcher drives calibre's own grid/bookshelf toggle buttons and follows
+  `alternate_views.stack.currentChanged`; calibre switches the stack page *before* updating
+  `current_view`, so map the stack index through `stack_positions`.
+- **Toolbars & menus preferences.** Invisible actions (this plugin's, any plugin's) must list
+  `searchbar` in `dont_add_to`, or that page crashes on `None.replace`. Its Preferences check
+  accepts the main menu while the header bar is merged.
+- **Integrated title bar** (`frameless.py`, X11 only). Frameless + translucent must be set
+  before the native window exists (an existing X11 window keeps its opaque visual: the margin
+  renders black). `_GTK_FRAME_EXTENTS` is set through libX11 via ctypes; **every** ctypes call
+  needs `argtypes` or the 64-bit `Display*` is truncated and libX11 segfaults. The window
+  background and shadow are a cached pixmap drawn clipped to the dirty region; a click-through
+  overlay erases the four corners anti-aliased (masks cannot be) and only paints when a corner
+  is dirty. The window manager takes the pointer after `startSystemMove`, so a double-click is
+  not delivered.
+- **Panes.** `SplitterHandle.COLLAPSED_SIZE = 0`: calibre's 2 px stub for a hidden pane is a strip
+  the content cannot scroll under; above the book area it read as a line under the header bar.
+- **Icons.** calibre loads user themes from `<config>/icons-{any,dark,light}.rcc`, built with
   `calibre.utils.rcc.compile_icon_dir_as_themes`. The theme inherits `calibre-default`, so
-  unmapped names fall through to calibre's icons. Dark/light-only user themes would shadow the
-  `any` slot, so install moves all three aside (`*.pre-adwaita`).
+  unmapped names fall through. Dark/light-only user themes would shadow the `any` slot, so
+  install moves all three aside (`*.pre-adwaita`).
+- **Viewer.** It loads no interface plugins and its `viewer.html`/`viewer.js` are
+  `allow_user_override=False`. Two shared settings reach it: the custom palettes in `gprefs`
+  (stored under the key `adwaita`, so a user's `__current__` palette is untouched) and the
+  viewer's built-in "System" colour scheme, which reads Base/Text/Link from that palette.
 
-Dead ends: `CALIBRE_USE_SYSTEM_THEME=1` gives plain Fusion (`PaletteManager.initialize` then
-switches straight back to calibre's style), and `org.kde.KStyle.Adwaita` cannot load into the
-Flathub build, which bundles its own Qt 6.10 on the freedesktop runtime.
+Dead ends: `CALIBRE_USE_SYSTEM_THEME=1` gives plain Fusion; `org.kde.KStyle.Adwaita` cannot load
+into the Flathub build (bundled Qt 6.10 on the freedesktop runtime). Qt's Wayland Adwaita
+decoration hard-codes Cantarell 10 for the title (theme `TitleBarFont` is unset), which is why
+the README recommends XWayland.
 
 ## Dev loop
 
 ```bash
-scripts/gates.sh                    # ruff + unit tests; check the exit code
-scripts/dev/run.sh v5 dark          # screenshots -> .dev/shots/v5-*.png, then quits
+scripts/gates.sh                          # ruff + unit tests; check the exit code
+scripts/dev/run.sh v5 dark                # screenshots -> .dev/shots/v5-*.png, then quits
 scripts/dev/run.sh v5 light
-scripts/dev/run.sh before dark plain   # same, without the plugin
-ONLY=main,menu scripts/dev/run.sh x dark
+scripts/dev/run.sh before dark plain      # same, without the plugin
+ONLY=main,menu WIDTH=1450 scripts/dev/run.sh x dark
 ```
 
-`run.sh` uses a throwaway profile (`.dev/config`, `.dev/library`) and never touches the real
-calibre profile. The dev library is built with `calibre-debug -e scripts/dev/mklib.py -- .dev/library`.
-calibre's single-instance lock is an abstract Unix socket keyed on the uid, which would hand
-the launch to an already-running calibre. Abstract sockets are per network namespace, so the dev
-instance runs with `flatpak run --unshare=network`. A fresh profile also needs
-`welcome_wizard_was_run`, which `run.sh` sets.
+Steps in `scripts/dev/shots/main.py`: `main`, `focus`, `statusbar`, `hover`, `layoutmenu`,
+`scrolled`, `sidebar`, `perf` (times grid and window repaints), `edges` (lists widgets at the
+header's edge), `toggles` (hides/shows panes), `menu`, `menus` (every menu), `grid`, `prefs`,
+`metadata`, `news`, `flip` (live light/dark switch), `views`, `closebtn`, `prefcheck`.
 
-Screenshots are taken in-process with `QWidget.grab()` by the dev plugin in
-`scripts/dev/shots/`, which works on Wayland without the screenshot portal. Its `flip` step
-exercises the live light/dark switch.
+`run.sh` uses a throwaway profile (`.dev/config`, `.dev/library`) and never touches the real
+calibre profile. Build the library with `calibre-debug -e scripts/dev/mklib.py -- .dev/library`
+and, for scrolling tests, add more with `scripts/dev/more_books.py`. calibre's single-instance
+lock is an abstract Unix socket keyed on the uid; abstract sockets are per network namespace, so
+the dev instance runs with `flatpak run --unshare=network`. A fresh profile also needs
+`welcome_wizard_was_run`, which `run.sh` sets. Install the current icons into the dev profile with
+`calibre-debug -e scripts/dev/icons_test.py -- <zip> $PWD install`.
+
+Screenshots are taken in-process with `QWidget.grab()`, which works on Wayland without the
+screenshot portal. Programmatic scrolling of the book *list* does not render in grabs; the tag
+browser and grid do. Measure user-reported artefacts in their screenshots' pixels
+(`magick … txt:-`) before changing code.
 
 ## Icons
 
@@ -63,14 +112,14 @@ flatpak run --command=calibre-debug com.calibre_ebook.calibre \
     -e "$PWD/scripts/build_icons.py" -- "$PWD/plugin/icons"
 ```
 
-Renders through calibre's Qt (the bundle has the SVG image plugin but no `qt.svg` module). The
-SVGs are recoloured the way GTK does it, by compositing with `SourceIn`: Adwaita sources mix
-`fill="#2e3436"`, other greys and paths without any fill, so string replacement misses parts.
-Sources with filters, masks or embedded images render as a solid square;
-`tests/test_icons.py` rejects them.
+Renders through calibre's Qt (the bundle has the SVG image plugin but no `qt.svg` module). SVGs
+are recoloured the way GTK does it, by compositing with `SourceIn`: Adwaita sources mix
+`fill="#2e3436"`, other greys and paths without any fill. Sources with filters, masks or embedded
+images render as a solid square; `tests/test_icons.py` rejects them. Off-centre glyphs listed in
+`RECENTRE` are re-centred.
 
 ## Release
 
 1. Bump `version` in `plugin/__init__.py`, update `CHANGELOG.md`.
-2. `scripts/gates.sh`, rebuild the icons if the mapping changed, `scripts/dev/run.sh` in both modes.
+2. `scripts/gates.sh`; rebuild the icons if the mapping changed; `scripts/dev/run.sh` in both modes.
 3. `scripts/build.sh` → `dist/AdwaitaForCalibre-<version>.zip`, attach to a GitHub release.

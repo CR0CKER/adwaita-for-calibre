@@ -1,80 +1,125 @@
 # Adwaita for calibre
 
-A [calibre](https://calibre-ebook.com) plugin that makes calibre look like a native GNOME app.
+A [calibre](https://calibre-ebook.com) plugin that makes calibre look and feel like a native GNOME
+app: libadwaita's colours, controls and layout, GNOME's symbolic icons, and a single header bar.
 
 | Before | After |
 |---|---|
-| ![calibre with its default look](docs/screenshots/before-dark.png) | ![calibre with Adwaita for calibre, dark](docs/screenshots/main-dark.png) |
+| ![calibre with its default look](docs/screenshots/before-dark.png) | ![calibre with Adwaita for calibre, dark](docs/screenshots/grid-dark.png) |
 
-![Light mode](docs/screenshots/main-light.png)
+| Light | Bookshelf view |
+|---|---|
+| ![Light mode](docs/screenshots/grid-light.png) | ![Bookshelf view, light](docs/screenshots/bookshelf-light.png) |
 
-## What it does
+## What it changes
 
-- **Colours.** libadwaita's palette (GNOME 49): window, view, headerbar and popover surfaces,
-  foreground and border opacities. calibre follows the GNOME light/dark setting live, as it
-  already does with its own palette.
-- **Your accent colour.** Read from the desktop's Settings portal, so it matches whatever accent
-  you picked in GNOME Settings, and changes when you change it. Falls back to blue.
-- **Controls.** The toolbar is styled as a headerbar. Buttons and entries get 9px corners,
-  and the dialog's default button gets the accent ("suggested action"). Also restyled: check
-  boxes and radio buttons, rounded menus and popups, view-switcher tabs, thin scroll bars
-  without arrows, group boxes as cards, flat column headers.
-- **Font.** Uses the GNOME interface font (`Adwaita Sans 11` by default) unless you have set a
-  font in calibre's Preferences.
-- **Icons (optional).** GNOME's Adwaita symbolic icons for the toolbar, menus and tag browser,
-  in light and dark variants. 186 of calibre's icons are mapped. Format icons, device pictures,
-  logos and other pictures whose colour carries meaning stay calibre's own.
+**Colours that follow GNOME.** libadwaita's palette (GNOME 49), switching live with the system's
+light/dark setting, in your GNOME accent colour (read from the desktop's Settings portal; it
+changes when you change it). The GNOME interface font is used unless you set one in calibre.
 
-| Edit metadata | Context menu | Preferences |
+**One header bar.** The toolbar and the search row become a single GNOME header bar: your actions
+on the left, a centred search field with Virtual library and saved searches, a List · Grid ·
+Bookshelf view switcher, and a ☰ main menu (Preferences, all actions, Help, Restart). Split
+buttons look like GNOME's split buttons, "Small" toolbar icons are GNOME's 16 px, and
+Preferences can be removed from the toolbar since it lives in the main menu.
+
+**GNOME controls throughout.** Rounded buttons and entries with the accent on the default button,
+check boxes, radio buttons, menus and popovers with libadwaita's outline and shadow, view-switcher
+tabs, overlay scroll bars that fade out, flat column headers, cards for group boxes.
+
+**A three-pane layout.** The tag browser and the book details pane are GNOME sidebars around the
+book area, separated by hairlines instead of splitter grips. The tag browser gets rounded rows,
+GNOME expanders and an action bar for Configure / Find. Shadows appear under the header bar and
+above the status bar only while content is scrolled beneath them. The status bar shows just the
+book count and selection.
+
+**Books.** Covers are drawn as cards with a soft shadow, so white covers stand out on a white
+grid. The bookshelf view uses flat Adwaita colours instead of wood.
+
+**Dialogs and popups.** The Layout popup is a popover; Edit metadata gets consistent icon sizes,
+a cover card, card-style formats list and comments editor, and GNOME's success/error colours for
+the sort fields.
+
+**The e-book viewer** (optional, on by default): Adwaita colours for its panels and for the
+"System" reading colour scheme, which follows light/dark and the accent.
+
+**Icons (optional).** GNOME's Adwaita symbolic icons for the toolbar, menus, tag browser and
+dialogs, in light and dark variants: 186 of calibre's icons. Nine symbols GNOME has no icon for
+were drawn in the same style. File-format icons, logos and status dots stay calibre's own.
+
+**Integrated title bar (optional, experimental).** The header bar becomes the window's title bar,
+with GNOME window buttons, rounded corners and shadow; drag it to move, resize from the edges,
+snapping and tiling work. Needs calibre on X11 or XWayland, see below.
+
+| Edit metadata | Context menu | Book list |
 |---|---|---|
-| ![](docs/screenshots/edit-metadata-dark.png) | ![](docs/screenshots/context-menu-dark.png) | ![](docs/screenshots/preferences-dark.png) |
+| ![](docs/screenshots/edit-metadata-light.png) | ![](docs/screenshots/context-menu-light.png) | ![](docs/screenshots/list-dark.png) |
 
 ## Install
 
 1. Download `AdwaitaForCalibre-<version>.zip` from the
    [releases](https://github.com/CR0CKER/adwaita-for-calibre/releases).
 2. calibre → Preferences → Plugins → **Load plugin from file** → choose the zip → restart calibre.
-3. Optional, for the icons: Preferences → Plugins → *Adwaita for calibre* → **Customize plugin**
-   → **Use Adwaita icons**, then restart. Your previous icon theme is kept and **Restore
-   previous icons** brings it back.
+3. Optional: Preferences → Plugins → *Adwaita for calibre* → **Customize plugin**:
+   - **Use Adwaita icons** installs the icon set (your current icon theme is kept; **Restore
+     previous icons** brings it back);
+   - **Integrated title bar** (needs X11/XWayland);
+   - **Apply to the e-book viewer** (on by default).
 
-Tip: Adwaita's symbolic icons are drawn for small sizes. Preferences → Look & feel → Main
-interface → Toolbar → Icon size *Small* matches GNOME apps most closely.
+   Restart calibre after changing these.
+
+### Integrated title bar: run calibre on XWayland
+
+On Wayland, Qt cannot tell GNOME where a frameless window's real edge is, so the plugin leaves the
+title bar alone there. On XWayland it can, and GNOME then also draws calibre's ordinary title
+bar with the correct font. For the Flathub build:
+
+```
+flatpak override --user --env=QT_QPA_PLATFORM=xcb --socket=x11 --nosocket=fallback-x11 com.calibre_ebook.calibre
+```
+
+`--nosocket=fallback-x11` is needed: with the manifest's `fallback-x11`, Flatpak withholds the X11
+socket whenever Wayland is available. Undo with
+`flatpak override --user --reset com.calibre_ebook.calibre` (this also removes any other
+overrides you set for calibre). For a non-Flatpak calibre, start it with `QT_QPA_PLATFORM=xcb`.
 
 ### Uninstall
 
-Remove the plugin in Preferences → Plugins and restart. If you installed the icons, restore
-your previous icons first (or pick another theme in Look & feel → *Change icon theme*).
+Restore your previous icons first (Customize plugin → Restore previous icons), then remove the
+plugin in Preferences → Plugins and restart.
 
 ## Requirements and limits
 
-- Linux, calibre 9.x with its own Qt style (the default). Tested on calibre 9.18 (Flathub) on
-  Fedora 43 / GNOME 49. Reading the accent and the font needs `xdg-desktop-portal`, which every
-  GNOME desktop and the Flatpak sandbox provide.
-- calibre's own colour palette settings (Look & feel → *Adjust colors*) have no effect while the
+- Linux, calibre 9 with its own Qt style (the default). Tested on calibre 9.18 (Flathub) on
+  Fedora 43 / GNOME 49, dark and light. The accent and font come from `xdg-desktop-portal`,
+  which GNOME and the Flatpak sandbox provide.
+- calibre's own colour palette setting (Look & feel → *Adjust colors*) has no effect while the
   plugin is active.
-- The title bar and the toolbar remain two separate bars: Qt widgets cannot merge them into a
-  single GTK headerbar. The title bar uses Qt's own Adwaita-style Wayland decorations.
-- The e-book viewer and the book editor run as separate programs that do not load interface
-  plugins, so they keep calibre's look.
-- Some calibre widgets set their own colours, such as the green check on valid sort fields;
-  those are left alone on purpose.
+- Hidden panes (cover browser, Quickview, side panels) take no space, so they can no longer be
+  dragged out from the window edge; open them from the Layout button or their shortcut.
+- Double-clicking the integrated title bar does not maximize the window (the window manager owns
+  the pointer after the first click). Use Super+↑ or drag to the top edge.
+- The e-book viewer's in-page scroll bar keeps calibre's look: the viewer's page files cannot be
+  overridden. It can be switched off in the viewer's Preferences → Scrolling behavior.
+- The book editor and other separate calibre programs keep calibre's look.
 
 ## How it works
 
 calibre rebuilds its palette and stylesheet whenever the colour scheme changes
-(`calibre/gui2/palette.py`, `PaletteManager`). The plugin replaces the two palette factories and
-appends its stylesheet each time that happens. There is no native Qt Adwaita style to switch to:
-calibre's Flathub build bundles its own Qt, so system Qt styles cannot load. The icon set is
-compiled into calibre's own user icon-theme slot. See [docs/development.md](docs/development.md).
+(`calibre/gui2/palette.py`). The plugin replaces the two palette factories and appends its
+stylesheet each time that happens, and patches a handful of calibre's widgets and delegates where
+a stylesheet cannot reach. There is no native Qt Adwaita style to switch to: calibre's Flathub
+build bundles its own Qt, so system Qt styles cannot load. See
+[docs/development.md](docs/development.md) for every hook and the development loop.
 
 ## License
 
-GPL-3.0, see [LICENSE](LICENSE). The icon set and the indicator images are GNOME's Adwaita
-symbolic icons from adwaita-icon-theme 49.0 (LGPL-3.0-only or CC-BY-SA-3.0, GNOME Project),
-recoloured; the advanced-search cog is GNOME Settings' symbolic icon (gnome-control-center 49,
-CC0-1.0); nine symbols GNOME has no icon for (books, tag, ++, −−, text colour, superscript, subscript,
-heading, horizontal rule) were drawn for this plugin in the same style (GPL-3.0). Colour values are taken from libadwaita (LGPL-2.1-or-later).
+GPL-3.0, see [LICENSE](LICENSE). The icon set and indicator images are GNOME's Adwaita symbolic
+icons from adwaita-icon-theme 49.0 (LGPL-3.0-only or CC-BY-SA-3.0, GNOME Project), recoloured;
+the search field's cog is GNOME Settings' symbolic icon (gnome-control-center 49, CC0-1.0); nine
+symbols GNOME has no icon for (books, tag, ++, −−, text colour, superscript, subscript, heading,
+horizontal rule) were drawn for this plugin in the same style (GPL-3.0). Colour values are taken
+from libadwaita (LGPL-2.1-or-later).
 
 GNOME is a trademark of the GNOME Foundation. This plugin is designed for use with GNOME but is
 not affiliated with or endorsed by the GNOME Foundation or the GNOME Project, nor by calibre.

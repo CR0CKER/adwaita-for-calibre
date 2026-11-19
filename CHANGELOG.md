@@ -2,36 +2,37 @@
 
 ## 0.1.0 (unreleased)
 
-- libadwaita light and dark palettes, following GNOME's colour scheme and accent colour live.
-- Adwaita stylesheet: headerbar toolbar, buttons, entries, combo and spin boxes, check boxes,
-  radio buttons, menus, tooltips, tabs, item views, headers, scroll bars, group boxes,
-  progress bars, sliders, status bar.
-- GNOME interface font when calibre has no font set.
-- One header bar: the toolbar moves into the search row; icon-only buttons, a main menu
-  (Preferences, All actions, Help, Restart), no separate Search button. "Small" toolbar icons
-  are GNOME's 16 px.
-- Experimental, opt-in: integrated title bar on X11/XWayland (frameless window with painted
-  rounded corners and shadow, `_GTK_FRAME_EXTENTS`, GNOME window buttons).
-- Optional Adwaita symbolic icon set (186 icons, light and dark), installed and restored from the
-  plugin's Customize dialog. Nine symbols GNOME lacks are drawn in its style (books, tag, ++/−−,
-  text colour, superscript, subscript, heading, horizontal rule); the cog is GNOME Settings'.
-- View switcher (List / Grid / Bookshelf) as an AdwToggleGroup; Sort and Group by keep their space
-  so switching never moves the header bar.
-- Split buttons as AdwSplitButton; search field without placeholder, centred cluster with drag space;
-  Preferences can be removed from the toolbar (it is in the main menu).
+First release.
+
+### Look
+
+- libadwaita light and dark palettes, following GNOME's colour scheme and accent colour live;
+  GNOME interface font when calibre has no font set.
+- Adwaita stylesheet: buttons, entries, combo and spin boxes, check boxes, radio buttons, tabs,
+  item views, headers, group boxes as cards, progress bars, sliders, tooltips.
+- Menus and popovers with libadwaita's outline and shadow.
+- Overlay scroll bars that fade out.
+- Book covers as libadwaita cards (soft shadow and hairline) in the grid and the details pane.
 - Bookshelf view in flat Adwaita colours instead of wood.
-- Tag browser as a navigation sidebar: sidebar colour, rounded rows, 16 px expanders, readable hover
-  text, action-bar Configure/Find.
-- Overlay scroll bars that fade out (calibre's style with SH_ScrollBar_Transient).
+
+### Layout
+
+- One header bar: toolbar and search row merged; centred search with Virtual library and saved
+  searches; List / Grid / Bookshelf view switcher; ☰ main menu; split buttons as AdwSplitButton;
+  16 px "Small" toolbar icons; Preferences can be removed from the toolbar.
+- Sidebar | content | sidebar: tag browser and book details as GNOME sidebars, hairline dividers
+  instead of splitter grips, hidden panes take no space.
+- Tag browser: rounded rows, 16 px expanders, readable hover text, action-bar Configure / Find.
 - Raised-bar shadows under the header bar and above the status bar while content is scrolled.
-- Status bar: only the book count and selection, libadwaita padding.
-- Layout popup as a libadwaita popover.
-- Integrated title bar: anti-aliased corner overlay instead of masks, cursor fix, double-click
-  detection, Wayland skipped.
-- Three-pane layout as libadwaita: book details as a sidebar like the tag browser, 1 px sidebar
-  borders instead of splitter grips, 12 px insets in the details pane.
-- Edit metadata: 20 px format buttons, cover as a card, formats list as a card, single-border
-  comments editor, GNOME success/error colours on the sort fields, icon/label spacing.
-- Tag browser scroll shadows (header bar / Configure-Find), like the book area.
-- Book covers as libadwaita cards (soft shadow + hairline) in the grid and details panel.
-- E-book viewer: Adwaita palettes and its "System" reading colour scheme (opt-out in Customize).
+- Status bar with just the book count and selection.
+- Layout popup as a popover.
+- Edit metadata: 20 px format buttons, cover and formats list as cards, single-border comments
+  editor, GNOME success/error colours on the sort fields, icon/label spacing.
+
+### Optional
+
+- Adwaita symbolic icon set (186 icons, light and dark), installed and restored from the plugin's
+  Customize dialog. Nine symbols GNOME lacks are drawn in its style; the cog is GNOME Settings'.
+- Integrated title bar on X11/XWayland: frameless window with cached painted shadow and
+  anti-aliased corners, `_GTK_FRAME_EXTENTS`, GNOME window buttons per `button-layout`.
+- E-book viewer: Adwaita palettes and its "System" reading colour scheme (on by default).
