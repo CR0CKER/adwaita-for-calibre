@@ -31,11 +31,9 @@ class Shade(QWidget):
         self.hide()
 
     def paintEvent(self, ev):
-        line_a, a = _alphas()
+        _, a = _alphas()
         p = QPainter(self)
         w, h = self.width(), self.height()
-        line = QColor(0, 0, 6)
-        line.setAlphaF(line_a)
         g = QLinearGradient(0, 0, 0, h) if self.edge == 'top' else QLinearGradient(0, h, 0, 0)
         c0, c1 = QColor(0, 0, 6), QColor(0, 0, 6)
         c0.setAlphaF(a)
@@ -43,7 +41,7 @@ class Shade(QWidget):
         g.setColorAt(0, c0)
         g.setColorAt(1, c1)
         p.fillRect(0, 0, w, h, g)
-        p.fillRect(0, 0 if self.edge == 'top' else h - 1, w, 1, line)
+        # No 1 px edge line: tried (libadwaita draws one), Nils preferred the shadow alone.
         p.end()
 
 
