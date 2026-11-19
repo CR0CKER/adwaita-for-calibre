@@ -10,7 +10,8 @@ class AdwaitaForCalibre(InterfaceActionBase):
     supported_platforms = ['linux']
     author = 'CR0CKER'
     version = (0, 1, 0)
-    minimum_calibre_version = (7, 0, 0)
+    # Uses calibre 9 internals (bookshelf view, layout buttons, central container); tested on 9.18.
+    minimum_calibre_version = (9, 0, 0)
 
     actual_plugin = 'calibre_plugins.adwaita_for_calibre.main:AdwaitaAction'
 

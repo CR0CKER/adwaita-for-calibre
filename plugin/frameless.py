@@ -49,6 +49,8 @@ class X11:
             ctypes.c_void_p, ctypes.c_ulong, ctypes.c_ulong, ctypes.c_ulong, ctypes.c_int,
             ctypes.c_int, ctypes.c_void_p, ctypes.c_int]
         lib.XFlush.argtypes = [ctypes.c_void_p]
+        lib.XCloseDisplay.argtypes = [ctypes.c_void_p]
+        lib.XCloseDisplay.restype = ctypes.c_int
         # Every call needs argtypes: without them ctypes passes the 64-bit Display* as a C int
         # and libX11 segfaults.
         lib.XGetWindowAttributes.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.c_void_p]
@@ -59,13 +61,23 @@ class X11:
         self.extents = lib.XInternAtom(self.dpy, b'_GTK_FRAME_EXTENTS', 0)
         self.cardinal = lib.XInternAtom(self.dpy, b'CARDINAL', 0)
 
+    def close(self):
+        """Release the X connection (idempotent); called when calibre quits."""
+        if self.dpy:
+            self.lib.XCloseDisplay(self.dpy)
+            self.dpy = None
+
     def depth(self, wid):
         # XWindowAttributes starts with int x, y, width, height, border_width, depth.
+        if not self.dpy:
+            return 0
         buf = (ctypes.c_int * 64)()
         self.lib.XGetWindowAttributes(self.dpy, wid, buf)
         return buf[5]
 
     def set_frame_extents(self, wid, px):
+        if not self.dpy:  # closed at quit; a late state change must not pass NULL to libX11
+            return
         data = (ctypes.c_long * 4)(px, px, px, px)  # left, right, top, bottom (device px)
         self.lib.XChangeProperty(self.dpy, wid, self.extents, self.cardinal, 32, 0, data, 4)
         self.lib.XFlush(self.dpy)
@@ -82,6 +94,8 @@ class Frame(QObject):
         super().__init__(gui)
         self.gui, self.header = gui, header
         self.x11 = X11()
+        from qt.core import QApplication
+        QApplication.instance().aboutToQuit.connect(self.x11.close)
         self.margin = SHADOW
         self.last_press = (0, None)
         self.corners = None
@@ -99,7 +113,7 @@ class Frame(QObject):
         dpr = self.gui.devicePixelRatioF()
         try:
             self.x11.set_frame_extents(int(self.gui.winId()), round(m * dpr))
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 -- shadow geometry only; the window still works
             debug('frame extents failed', e)
         self.update_mask()
         self.gui.update()
@@ -389,7 +403,7 @@ def install(gui, image_dir):
     frame.update_margins()
     try:
         debug('window depth', frame.x11.depth(int(gui.winId())))
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 -- diagnostic only
         debug('depth check failed', e)
     debug('integrated title bar on')
     return True

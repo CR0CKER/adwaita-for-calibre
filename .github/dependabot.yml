@@ -1,0 +1,17 @@
+# Keep the CI action SHA pins and the hash-locked ruff current (audit M2).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      dev-tools:
+        patterns: ["*"]
