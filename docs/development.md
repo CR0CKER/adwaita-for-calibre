@@ -78,6 +78,10 @@
   calling `do_layout`, so a size computed for an earlier, larger view survives. `covers.py`
   therefore clamps the cover to the view minus `SHADOW_ROOM` in `paintEvent` too, or the card
   shadow is clipped at the view's edges (visible in light mode).
+- **Cover browser.** calibre's PictureFlow paints to its top edge and calibre places it at the
+  top of the book area, so `panes.py` moves it down by `COVER_BROWSER_GAP` after each wide or
+  narrow layout. Its black background is hard-coded in calibre's C++ (reflections and side
+  covers fade to black), so it cannot follow the theme.
 - **Panes.** `SplitterHandle.COLLAPSED_SIZE = 0`: calibre's 2 px stub for a hidden pane is a strip
   the content cannot scroll under; above the book area it read as a line under the header bar.
 - **Icons.** calibre loads user themes from `<config>/icons-{any,dark,light}.rcc`, built with

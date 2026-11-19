@@ -65,6 +65,8 @@ def install(gui):
         SplitterHandle.paintEvent = paint
         SplitterHandle._adwaita_patched = True
 
+    _install_cover_browser_gap()
+
     from calibre.gui2.book_details import BookDetails
     from qt.core import QWidget
     for w in gui.findChildren(QWidget):
@@ -77,3 +79,30 @@ def install(gui):
     container = getattr(gui, 'layout_container', None)
     if container is not None and hasattr(container, 'relayout'):
         container.relayout()
+
+
+# Room above the cover browser, so the front cover's top edge does not touch the header bar.
+COVER_BROWSER_GAP = INSET
+
+
+def _install_cover_browser_gap():
+    """calibre's cover browser (PictureFlow) paints up to its top edge, and calibre places it
+    at the top of the book area, right under the header bar. Move it down by the panes' inset
+    after each layout; the gap shows the container's background."""
+    from calibre.gui2.central import CentralContainer
+    if getattr(CentralContainer, '_adwaita_cb_gap', False):
+        return
+
+    def wrap(orig):
+        def layout(self):
+            orig(self)
+            cb = self.cover_browser
+            if self.is_visible.cover_browser and not self.separate_cover_browser and cb.isVisible():
+                g = cb.geometry()
+                if g.y() == 0 and g.height() > 2 * COVER_BROWSER_GAP:
+                    cb.setGeometry(g.adjusted(0, COVER_BROWSER_GAP, 0, 0))
+        return layout
+
+    CentralContainer.do_wide_layout = wrap(CentralContainer.do_wide_layout)
+    CentralContainer.do_narrow_layout = wrap(CentralContainer.do_narrow_layout)
+    CentralContainer._adwaita_cb_gap = True

@@ -298,6 +298,9 @@ class Shots(InterfaceAction):
             shown = 'shown' if b.isChecked() else 'hidden'
             self.check(cb.isVisible() == b.isChecked(), f'cover browser {shown}')
             if b.isChecked():
+                from calibre_plugins.adwaita_for_calibre import panes
+                self.check(cb.y() == panes.COVER_BROWSER_GAP,
+                           f'cover browser {panes.COVER_BROWSER_GAP}px below the header bar (y={cb.y()})')
                 self.save(self.gui, 'covertoggle-on')
             b.click()
             self.later(500, lambda: (self.check(b.isChecked() == start and cb.isVisible() == start,
