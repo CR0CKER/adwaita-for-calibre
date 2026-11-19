@@ -81,6 +81,13 @@
   calling `do_layout`, so a size computed for an earlier, larger view survives. `covers.py`
   therefore clamps the cover to the view minus `SHADOW_ROOM` in `paintEvent` too, or the card
   shadow is clipped at the view's edges (visible in light mode).
+- **Pane scroll shades** (`shade.ScrollAreaShades`). They take the viewport's top and bottom but
+  snap to the pane's edges (sides, top under the header bar, bottom on the bottom bar), so the
+  tree's frame and the details insets do not leave them short or low; a gap wider than
+  `EDGE_SNAP` (a cover beside or above the text) is left alone. The
+  details shades are children of the pane's *parent*: `BookDetails` is a `QSplitter`, which
+  adopts every child widget as a new section (an overlay parented to it ends up as a 0-px pane).
+  The harness steps `sidebar` and `details` check the span and the top/bottom edges.
 - **Cover browser.** calibre's PictureFlow (C++) sizes its covers from its own height and draws
   the front cover flush with its top edge, with no padding setting. `panes.py` moves it down by
   `COVER_BROWSER_GAP` after each wide or narrow layout and fills the strip above with a black

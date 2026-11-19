@@ -94,35 +94,67 @@ def install(gui):
     return c
 
 
+# A gap up to this wide between a scroll area's viewport and its pane's edge is padding (the
+# tree's own frame, the pane's insets), so the shade runs across it to the pane's edge, as
+# libadwaita's undershoot does. A wider gap holds something else (the details cover beside the
+# text), which the shade must not darken.
+EDGE_SNAP = 32
+
+
 class ScrollAreaShades(QObject):
     """The same raised-bar shadows for a single scroll area (the tag browser): under the header
-    bar once scrolled, above the bottom bar (Configure / Find) while more lies below."""
+    bar once scrolled, above the bottom bar (Configure / Find) while more lies below.
 
-    def __init__(self, area, bottom=True):
+    The shades run edge to edge across ``pane`` (default: the scroll area itself), from its top
+    and bottom, so the content's padding does not leave them short at the sides or push them
+    away from the bars.
+    For a pane, they are children of the pane's parent: BookDetails is a QSplitter, which adopts
+    every child widget as a new splitter section."""
+
+    def __init__(self, area, bottom=True, pane=None):
         super().__init__(area)
         self.area = area
-        self.top = Shade(area, 'top')
-        self.bottom = Shade(area, 'bottom')
+        self.pane = pane if pane is not None else area
+        self.host = area if pane is None else pane.parentWidget()
+        self.top = Shade(self.host, 'top')
+        self.bottom = Shade(self.host, 'bottom')
         self.with_bottom = bottom
         sb = area.verticalScrollBar()
         sb.valueChanged.connect(self.update)
         sb.rangeChanged.connect(self.update)
         area.installEventFilter(self)
+        if self.pane is not area:
+            self.pane.installEventFilter(self)
         self.update()
 
     def eventFilter(self, obj, ev):
-        if ev.type() in (QEvent.Type.Resize, QEvent.Type.Show):
+        if ev.type() in (QEvent.Type.Resize, QEvent.Type.Move, QEvent.Type.Show, QEvent.Type.Hide):
             self.update()
         return False
 
     def update(self, *args):
+        from qt.core import QRect
         try:
-            vp = self.area.viewport().geometry()
-            sb = self.area.verticalScrollBar()
-            self.top.setGeometry(vp.left(), vp.top(), vp.width(), HEIGHT)
-            self.bottom.setGeometry(vp.left(), vp.bottom() - HEIGHT + 1, vp.width(), HEIGHT)
-            self.top.setVisible(sb.value() > sb.minimum())
-            self.bottom.setVisible(self.with_bottom and sb.value() < sb.maximum())
+            area, pane, host = self.area, self.pane, self.host
+            vp = area.viewport().geometry()  # in area coordinates
+            if host is not area:
+                vp = QRect(area.mapTo(host, vp.topLeft()), vp.size())
+                pr = QRect(pane.mapTo(host, pane.rect().topLeft()), pane.size())
+            else:
+                pr = area.rect()
+            left = pr.left() if vp.left() - pr.left() <= EDGE_SNAP else vp.left()
+            right = pr.right() if pr.right() - vp.right() <= EDGE_SNAP else vp.right()
+            # The same snap vertically: the shades start right under the header bar and end
+            # right on the bottom bar, not at the viewport's padded top and bottom.
+            top = pr.top() if vp.top() - pr.top() <= EDGE_SNAP else vp.top()
+            bottom = pr.bottom() if pr.bottom() - vp.bottom() <= EDGE_SNAP else vp.bottom()
+            width = right - left + 1
+            self.top.setGeometry(left, top, width, HEIGHT)
+            self.bottom.setGeometry(left, bottom - HEIGHT + 1, width, HEIGHT)
+            sb = area.verticalScrollBar()
+            shown = area.isVisible()
+            self.top.setVisible(shown and sb.value() > sb.minimum())
+            self.bottom.setVisible(shown and self.with_bottom and sb.value() < sb.maximum())
             self.top.raise_()
             self.bottom.raise_()
         except RuntimeError:
@@ -140,4 +172,4 @@ def install_sidebar(gui):
     from qt.core import QTextBrowser
     for bd in gui.findChildren(BookDetails):
         for tb in bd.findChildren(QTextBrowser):
-            tb._adwaita_shades = ScrollAreaShades(tb, bottom=False)
+            tb._adwaita_shades = ScrollAreaShades(tb, bottom=False, pane=bd)

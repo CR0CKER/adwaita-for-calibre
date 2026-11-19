@@ -103,8 +103,25 @@ class Shots(InterfaceAction):
             sb.setValue(sb.maximum() // 3)
             self.later(300, lambda: (print('DETAILS shade', tb._adwaita_shades.top.isVisible(),
                                            flush=True),
+                                     self.details_extent(bd, tb),
                                      self.save(self.gui, 'details'), self.next()))
         self.later(500, shoot)
+
+    def details_extent(self, bd, tb):
+        # With the cover above the text (narrow pane), the top shade runs across the whole pane,
+        # over its 12 px insets; with the cover beside the text it must stay clear of the cover.
+        from qt.core import QPoint
+        sh = tb._adwaita_shades.top
+        sx = sh.mapTo(self.gui, QPoint(0, 0)).x()
+        bx = bd.mapTo(self.gui, QPoint(0, 0)).x()
+        tx = tb.mapTo(self.gui, QPoint(0, 0)).x()
+        print('DETAILS extent shade', (sx, sx + sh.width()), 'pane', (bx, bx + bd.width()),
+              'text', (tx, tx + tb.width()), flush=True)
+        if tx - bx < 40:
+            self.check((sx, sx + sh.width()) == (bx, bx + bd.width()),
+                       f'details top shade spans the pane (shade {sx}+{sh.width()}, pane {bx}+{bd.width()})')
+        else:
+            self.check(sx >= tx, f'details top shade stays clear of the cover beside the text ({sx} >= {tx})')
 
     def sidebar(self):
         # Expand everything in the tag browser so it scrolls, then scroll it a little.
@@ -117,8 +134,37 @@ class Shots(InterfaceAction):
             sh = tv._adwaita_shades
             self.later(500, lambda: (print('SIDEBAR range', sb.maximum(), 'value', sb.value(), 'top',
                                            sh.top.isVisible(), 'bottom', sh.bottom.isVisible(), flush=True),
+                                     self.sidebar_extent(tv, sh),
                                      self.save(self.gui, 'sidebar'), self.next()))
         self.later(800, go)
+
+    def sidebar_extent(self, tv, sh):
+        # The scroll shades must run edge to edge across the pane, not just across the tree's
+        # viewport (which sits inside calibre's layout margins).
+        from qt.core import QPoint, QWidget
+
+        def span(w):
+            x = w.mapTo(self.gui, QPoint(0, 0)).x()
+            return x, x + w.width()
+        w = tv
+        while w is not None and w is not self.gui:
+            lay = QWidget.layout(w)
+            m = lay.contentsMargins() if lay is not None else None
+            print('SIDEBAR chain', type(w).__name__, w.objectName(), 'x', span(w),
+                  'layout margins', (m.left(), m.top(), m.right(), m.bottom()) if m else None, flush=True)
+            w = w.parentWidget()
+        pane = self.gui.tb_widget if hasattr(self.gui, 'tb_widget') else tv.parentWidget()
+        for name, s in (('top', sh.top), ('bottom', sh.bottom)):
+            self.check(span(s) == span(pane),
+                       f'tag browser {name} shade spans the pane (shade {span(s)}, pane {span(pane)})')
+        hb = self.gui.search_bar
+        header = hb.mapTo(self.gui, QPoint(0, hb.height())).y()
+        st = sh.top.mapTo(self.gui, QPoint(0, 0)).y()
+        self.check(st == header,
+                   f'tag browser top shade starts at the header bar (shade {st}, header {header})')
+        tb = tv.mapTo(self.gui, QPoint(0, tv.height())).y()
+        sb_ = sh.bottom.mapTo(self.gui, QPoint(0, sh.bottom.height())).y()
+        self.check(sb_ == tb, f'tag browser bottom shade ends on the bottom bar (shade {sb_}, tree {tb})')
 
     def perf(self):
         # Time cover-grid repaints with and without the plugin's card shadow, and the full
