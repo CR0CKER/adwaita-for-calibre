@@ -19,7 +19,7 @@ def _alphas():
     from qt.core import QApplication
     dark = QApplication.instance().palette_manager.is_dark_theme
     # Light: close to libadwaita (headerbar shade 12 % at 50 %); a dark edge line on white is harsh.
-    return (0.60, 0.45) if dark else (0.08, 0.10)
+    return (0.60, 0.30) if dark else (0.08, 0.07)
 
 
 class Shade(QWidget):
