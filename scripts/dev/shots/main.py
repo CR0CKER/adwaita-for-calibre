@@ -2,7 +2,7 @@ import os
 import traceback
 
 from calibre.gui2.actions import InterfaceAction
-from qt.core import QApplication, QPoint, QTimer
+from qt.core import QApplication, QPoint, Qt, QTimer
 
 
 class Shots(InterfaceAction):
@@ -37,7 +37,7 @@ class Shots(InterfaceAction):
             ('sidebar', self.sidebar), ('perf', self.perf),
             ('edges', self.edges), ('details', self.details), ('toggles', self.toggles),
             ('sidetoggle', self.sidetoggle), ('covertoggle', self.covertoggle), ('slide', self.slide),
-            ('coverroom', self.coverroom),
+            ('coverroom', self.coverroom), ('mdcheck', self.mdcheck),
             ('reset', self.reset),
             ('menu', self.menu),
             ('menus', self.menus), ('grid', self.grid),
@@ -504,11 +504,72 @@ class Shots(InterfaceAction):
         def grab():
             w = QApplication.activeModalWidget()
             if w is not None:
+                if os.environ.get('ADWAITA_TREE'):
+                    self.tree(w)
                 self.save(w, name)
                 w.reject()
         self.later(3000, grab)
         opener()
         self.later(500, self.next)
+
+    def tree(self, root, depth=0, max_depth=9):
+        # Widgets that paint a background of their own, with geometry: finds who draws what.
+        from qt.core import QPoint, QWidget
+        for w in root.findChildren(QWidget, options=Qt.FindChildOption.FindDirectChildrenOnly):
+            if not w.isVisible():
+                continue
+            p = w.mapTo(root.window(), QPoint(0, 0))
+            fill = w.autoFillBackground() or w.testAttribute(Qt.WidgetAttribute.WA_StyledBackground)
+            print('TREE', '  ' * depth + type(w).__name__, w.objectName() or '-', p.x(), p.y(),
+                  w.width(), w.height(), 'fill' if fill else '', flush=True)
+            if depth < max_depth:
+                self.tree(w, depth + 1, max_depth)
+
+    def mdcheck(self):
+        # Edit metadata (metadata.py tidy_dialog / status icons): one surface, top-aligned form,
+        # sort-field state as a coloured icon only, dimmed row buttons that light up on hover.
+        from calibre.gui2.metadata.single import ScrollArea
+        from qt.core import QEvent, QGraphicsOpacityEffect, QToolButton
+
+        def run():
+            d = QApplication.activeModalWidget()
+            try:
+                checks(d)
+            except Exception:
+                traceback.print_exc()
+                self.check(False, 'metadata checks ran without errors')
+                if d is not None:
+                    d.reject()
+                self.later(500, self.next)
+
+        def checks(d):
+            self.check(d is not None and d.findChild(ScrollArea) is not None, 'edit metadata dialog opened')
+            sa = d.findChild(ScrollArea)
+            self.check(not sa.viewport().autoFillBackground() and not sa.widget().autoFillBackground(),
+                       'metadata: one surface (scroll area transparent)')
+            rating_y = d.rating.mapTo(d, QPoint(0, 0)).y()
+            self.check(rating_y < d.height() // 2, f'metadata: fields top-aligned (Rating at y={rating_y})')
+            ts = d.title_sort
+            self.check(ts.styleSheet() == '', 'metadata: no coloured sort border')
+            ts.setText(ts.text() + ' x')
+            warn = ts.status_actions[1]
+            self.check(warn.isVisible() and not warn.icon().isNull(),
+                       'metadata: warning icon when sort differs')
+            pub_r = d.publisher.mapTo(d, QPoint(d.publisher.width(), 0)).x()
+            lang_r = d.languages.mapTo(d, QPoint(d.languages.width(), 0)).x()
+            self.check(abs(pub_r - lang_r) <= 1,
+                       f'metadata: Languages ends with the other fields ({lang_r} vs {pub_r})')
+            dimmed = [b for b in d.findChildren(QToolButton)
+                      if isinstance(b.graphicsEffect(), QGraphicsOpacityEffect)]
+            self.check(len(dimmed) >= 6, f'metadata: row buttons dimmed ({len(dimmed)})')
+            if dimmed:
+                b = dimmed[0]
+                QApplication.sendEvent(b, QEvent(QEvent.Type.Enter))
+                self.check(b.graphicsEffect().opacity() == 1.0, 'metadata: row button full on hover')
+                QApplication.sendEvent(b, QEvent(QEvent.Type.Leave))
+            self.later(300, lambda: (self.save(d, 'mdcheck'), d.reject(), self.later(500, self.next)))
+        self.later(2500, run)
+        self.gui.iactions['Edit Metadata'].edit_metadata(False)
 
     def metadata(self):
         self.modal('metadata', lambda: self.gui.iactions['Edit Metadata'].edit_metadata(False))

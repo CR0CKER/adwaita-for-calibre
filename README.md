@@ -39,9 +39,10 @@ book count and selection.
 **Books.** Covers are drawn as cards with a soft shadow, so white covers stand out on a white
 grid. The bookshelf view uses flat Adwaita colours instead of wood.
 
-**Dialogs and popups.** The Layout popup is a popover; Edit metadata gets consistent icon sizes,
-a cover card, card-style formats list and comments editor, and GNOME's success/error colours for
-the sort fields.
+**Dialogs and popups.** The Layout popup is a popover. Edit metadata becomes one calm surface: a
+top-aligned form, consistent icon sizes, a cover card, card-style formats list and comments
+editor, quiet per-row buttons that light up on hover, and the sort fields' state as a small green
+or amber icon instead of a coloured outline.
 
 **The e-book viewer** (optional, on by default): Adwaita colours for its panels and for the
 "System" reading colour scheme, which follows light/dark and the accent.

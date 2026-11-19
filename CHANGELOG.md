@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Edit metadata: one surface (calibre's scroll area no longer paints a darker panel inside a
+  lighter frame); the fields start right under the cover actions instead of floating to the
+  middle; *Languages* ends where the other fields do; the per-row buttons (clear, list, swap,
+  copy) are dimmed until hovered or focused; the sort fields lose their green/red outline and
+  show their state as a green check or amber warning icon.
+
 ## [0.1.0] - 2026-11-19
 
 First release.

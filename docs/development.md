@@ -15,7 +15,7 @@
 | `plugin/covers.py` | Cover card shadow (grid, details pane), cached |
 | `plugin/bookshelf.py` | Flat Adwaita colours for the bookshelf view |
 | `plugin/layoutmenu.py` | Layout popup as a popover |
-| `plugin/metadata.py` | Edit metadata refinements |
+| `plugin/metadata.py` | Edit metadata: one surface, top-aligned form, dimmed row buttons, sort-state icons, format icon size, cover card |
 | `plugin/statusbar.py` | Status bar text without the version banner |
 | `plugin/viewer.py` | Palettes and "System" colour scheme for the e-book viewer |
 | `plugin/config.py` | The *Customize plugin* dialog: icon set install/restore, integrated title bar, viewer |
@@ -84,6 +84,15 @@
   pad, so the black area still starts under the header bar with the covers inset. The black is
   hard-coded in that C++ (reflections and side covers fade to black), so it cannot follow the
   theme.
+- **Edit metadata** (`metadata.py`, wrapped `MetadataSingleDialogBase.__init__`). calibre's
+  `ScrollArea` viewport and content auto-fill the window colour over the dialog colour: both
+  stop auto-filling. In the default layout (`MetadataSingleDialog`) the middle grid has two
+  expanding spacers (above Rating, above Download metadata); the upper one becomes fixed 12 px.
+  *Languages* spans the clear-button column; its span is reduced by one. Icon-only tool buttons
+  directly in the form widgets get a `QGraphicsOpacityEffect` at 0.55, full on Enter/FocusIn.
+  Sort fields: `widgets.stylesheet_for_lineedit` returns no border and
+  `widgets.update_status_actions` (looked up at call time by `LineEditIndicators`) recolours
+  the check / warning actions to `status-ok.svg` / `status-warning.svg`.
 - **Panes.** `SplitterHandle.COLLAPSED_SIZE = 0`: calibre's 2 px stub for a hidden pane is a strip
   the content cannot scroll under; above the book area it read as a line under the header bar.
 - **Icons.** calibre loads user themes from `<config>/icons-{any,dark,light}.rcc`, built with
@@ -121,7 +130,7 @@ Steps in `scripts/dev/shots/main.py`: `main`, `focus`, `statusbar`, `hover`, `la
 header's edge), `toggles` (hides/shows panes), `menu`, `menus` (every menu), `grid`, `prefs`,
 `metadata`, `news`, `details` (scrolled book description), `sidetoggle` (header-bar sidebar
 toggles), `covertoggle` (cover-browser toggle), `slide` (pane slide; `SLIDE_MID_MS`, `SLIDE_LIST`), `coverroom` (details cover shadow
-not clipped), `flip` (live light/dark switch), `views`, `closebtn`, `prefcheck`.
+not clipped), `mdcheck` (Edit metadata tidy-up; needs a selected book, so run after `main`), `flip` (live light/dark switch), `views`, `closebtn`, `prefcheck`.
 
 `run.sh` uses a throwaway profile (`.dev/config`, `.dev/library`) and never touches the real
 calibre profile. Build the library with `calibre-debug -e scripts/dev/mklib.py -- .dev/library`
