@@ -21,7 +21,7 @@ First release.
   searches; List / Grid / Bookshelf view switcher; ☰ main menu; split buttons as AdwSplitButton;
   16 px "Small" toolbar icons; Preferences can be removed from the toolbar; sidebar toggles at
   both ends of the header bar for the tag browser and book details, which slide in and out; a
-  cover-browser toggle beside the view switcher; the cover browser sits 12 px below the header bar.
+  cover-browser toggle beside the view switcher; the cover browser has 12 px of padding at the top.
 - Pane | content | pane layout: tag browser and book details in the book area's colour, set off by
   hairline dividers instead of splitter grips; hidden panes take no space.
 - Tag browser: rounded rows, 16 px expanders, readable hover text, action-bar Configure / Find.

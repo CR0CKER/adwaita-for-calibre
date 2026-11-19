@@ -81,26 +81,44 @@ def install(gui):
         container.relayout()
 
 
-# Room above the cover browser, so the front cover's top edge does not touch the header bar.
+# Padding at the top of the cover browser, so the front cover's top edge does not touch the
+# header bar.
 COVER_BROWSER_GAP = INSET
 
 
 def _install_cover_browser_gap():
-    """calibre's cover browser (PictureFlow) paints up to its top edge, and calibre places it
-    at the top of the book area, right under the header bar. Move it down by the panes' inset
-    after each layout; the gap shows the container's background."""
+    """calibre's cover browser (PictureFlow, C++) sizes its covers from its own height and draws
+    the front cover flush with its top edge; it has no padding setting. So the widget is moved
+    down by COVER_BROWSER_GAP after each layout and the strip above it is filled with the same
+    black: the black area still starts right under the header bar, with the covers inset."""
     from calibre.gui2.central import CentralContainer
+    from qt.core import QWidget
     if getattr(CentralContainer, '_adwaita_cb_gap', False):
         return
+
+    def pad_for(self):
+        pad = getattr(self, '_adwaita_cb_pad', None)
+        if pad is None:
+            pad = self._adwaita_cb_pad = QWidget(self)
+            pad.setObjectName('adwaita_cover_browser_pad')
+            pad.setStyleSheet('background: #000000;')
+            pad.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        return pad
 
     def wrap(orig):
         def layout(self):
             orig(self)
             cb = self.cover_browser
+            pad = pad_for(self)
             if self.is_visible.cover_browser and not self.separate_cover_browser and cb.isVisible():
                 g = cb.geometry()
                 if g.y() == 0 and g.height() > 2 * COVER_BROWSER_GAP:
                     cb.setGeometry(g.adjusted(0, COVER_BROWSER_GAP, 0, 0))
+                    pad.setGeometry(g.x(), 0, g.width(), COVER_BROWSER_GAP)
+                    pad.show()
+                    pad.raise_()
+                    return
+            pad.hide()
         return layout
 
     CentralContainer.do_wide_layout = wrap(CentralContainer.do_wide_layout)
