@@ -188,6 +188,8 @@ class Theme:
                 background-color: {t['pane_bg']};
                 color: {t['fg']};
                 border: none;
+                /* Same 12 px top inset as the book details pane (panes.INSET). */
+                padding-top: 12px;
                 selection-background-color: {t['button_bg']};
                 selection-color: {t['fg']};
             }}

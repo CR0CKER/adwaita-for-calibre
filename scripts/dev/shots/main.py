@@ -35,7 +35,8 @@ class Shots(InterfaceAction):
             ('main', self.main), ('focus', self.focus), ('statusbar', self.statusbar), ('hover', self.hover),
             ('layoutmenu', self.layoutmenu), ('scrolled', self.scrolled),
             ('sidebar', self.sidebar), ('perf', self.perf),
-            ('edges', self.edges), ('toggles', self.toggles), ('reset', self.reset),
+            ('edges', self.edges), ('details', self.details), ('toggles', self.toggles),
+            ('reset', self.reset),
             ('menu', self.menu),
             ('menus', self.menus), ('grid', self.grid),
             ('prefs', self.prefs), ('metadata', self.metadata), ('news', self.news),
@@ -86,6 +87,22 @@ class Shots(InterfaceAction):
                                      print('STATUS', self.gui.status_bar.defmsg.text(), flush=True),
                                      self.next()))
         self.later(800, go)
+
+    def details(self):
+        # Book details with a long description, scrolled: text padding and the top shade.
+        from calibre.gui2.book_details import BookDetails
+        from qt.core import QTextBrowser
+        bd = self.gui.findChild(BookDetails)
+        tb = bd.findChild(QTextBrowser)
+        tb.setHtml('<p>' + ' '.join(['A long description that needs to scroll.'] * 120) + '</p>')
+
+        def shoot():
+            sb = tb.verticalScrollBar()
+            sb.setValue(sb.maximum() // 3)
+            self.later(300, lambda: (print('DETAILS shade', tb._adwaita_shades.top.isVisible(),
+                                           flush=True),
+                                     self.save(self.gui, 'details'), self.next()))
+        self.later(500, shoot)
 
     def sidebar(self):
         # Expand everything in the tag browser so it scrolls, then scroll it a little.

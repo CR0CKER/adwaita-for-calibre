@@ -140,6 +140,11 @@ BookDetails::handle:vertical {
 
 BookDetails QTextBrowser {
     border: none;
+    /* Text lines up with the cover card (SHADOW_ROOM 10 = 6 + the document's 4 px margin) and
+     * keeps clear of the overlay scroll bar; a 12 px gap below the cover, so scrolled text
+     * slides under a shade instead of being cut off at the cover's edge. */
+    padding: 0 6px;
+    margin-top: 12px;
 }
 
 /* Its bottom bar (Configure, Find) as a libadwaita action bar: full-size flat buttons, and a

@@ -23,7 +23,8 @@ First release.
 - Pane | content | pane layout: tag browser and book details in the book area's colour, set off by
   hairline dividers instead of splitter grips; hidden panes take no space.
 - Tag browser: rounded rows, 16 px expanders, readable hover text, action-bar Configure / Find.
-- Raised-bar shadows under the header bar and above the status bar while content is scrolled.
+- Raised-bar shadows under the header bar and above the status bar while content is scrolled; the
+  book description in the details pane scrolls under a shade below the cover.
 - Status bar with just the book count and selection; Layout popup as a popover.
 - Book covers as libadwaita cards in the grid and the details pane; flat Adwaita bookshelf view.
 - Edit metadata: 20 px format buttons, cover and formats list as cards, single-border comments

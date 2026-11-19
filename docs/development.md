@@ -96,7 +96,7 @@ ONLY=main,menu WIDTH=1450 scripts/dev/run.sh x dark
 Steps in `scripts/dev/shots/main.py`: `main`, `focus`, `statusbar`, `hover`, `layoutmenu`,
 `scrolled`, `sidebar`, `perf` (times grid and window repaints), `edges` (lists widgets at the
 header's edge), `toggles` (hides/shows panes), `menu`, `menus` (every menu), `grid`, `prefs`,
-`metadata`, `news`, `flip` (live light/dark switch), `views`, `closebtn`, `prefcheck`.
+`metadata`, `news`, `details` (scrolled book description), `flip` (live light/dark switch), `views`, `closebtn`, `prefcheck`.
 
 `run.sh` uses a throwaway profile (`.dev/config`, `.dev/library`) and never touches the real
 calibre profile. Build the library with `calibre-debug -e scripts/dev/mklib.py -- .dev/library`
