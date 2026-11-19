@@ -1,6 +1,6 @@
 # Adwaita for calibre
 
-Last updated: 2026-11-19 07:12 PM CET
+Last updated: 2026-11-19 09:36 PM CET
 
 [![ci](https://github.com/CR0CKER/adwaita-for-calibre/actions/workflows/ci.yml/badge.svg)](https://github.com/CR0CKER/adwaita-for-calibre/actions/workflows/ci.yml)
 [![License: GPL-3.0](https://img.shields.io/github/license/CR0CKER/adwaita-for-calibre)](LICENSE)

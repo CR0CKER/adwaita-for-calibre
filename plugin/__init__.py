@@ -9,7 +9,7 @@ class AdwaitaForCalibre(InterfaceActionBase):
                    'and scroll bars, and the GNOME interface font.')
     supported_platforms = ['linux']
     author = 'CR0CKER'
-    version = (0, 1, 0)
+    version = (0, 2, 0)
     # Uses calibre 9 internals (bookshelf view, layout buttons, central container); tested on 9.18.
     minimum_calibre_version = (9, 0, 0)
 
