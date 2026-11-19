@@ -1,0 +1,10 @@
+{
+  "name": "adwaita",
+  "title": "Adwaita",
+  "author": "CR0CKER",
+  "version": 1,
+  "license": "LGPL-3.0-only or CC-BY-SA-3.0 (GNOME adwaita-icon-theme)",
+  "url": "https://github.com/CR0CKER/adwaita-for-calibre",
+  "description": "GNOME's Adwaita symbolic icons, recoloured for calibre's light and dark modes.",
+  "color_palette": "any"
+}

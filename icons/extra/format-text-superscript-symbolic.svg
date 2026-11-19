@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Drawn for Adwaita for calibre in the style of GNOME symbolic icons (16 px grid, 2 px
+     strokes with round caps). GNOME has no symbol for this. GPL-3.0. -->
+<svg height="16px" viewBox="0 0 16 16" width="16px" xmlns="http://www.w3.org/2000/svg">
+    <path d="m 2 7 l 6 7 m 0 -7 l -6 7" stroke="#2e3436" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <rect x="11" y="1" width="4" height="4" rx="1" fill="#2e3436"/>
+</svg>

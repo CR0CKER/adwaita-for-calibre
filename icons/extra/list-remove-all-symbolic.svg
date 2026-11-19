@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Two minus signs ("exclude, with sub-items"), drawn for Adwaita for calibre to pair with
+     list-add-all. Adwaita's own list-remove-all is a "clear list" picture. GPL-3.0. -->
+<svg height="16px" viewBox="0 0 16 16" width="16px" xmlns="http://www.w3.org/2000/svg">
+    <g fill="#2e3436">
+        <rect x="1" y="7" width="6" height="2" rx="1"/>
+        <rect x="9" y="7" width="6" height="2" rx="1"/>
+    </g>
+</svg>

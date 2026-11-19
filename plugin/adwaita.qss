@@ -1,0 +1,793 @@
+/* Adwaita for calibre: the stylesheet layer.
+ *
+ * Appended after calibre's own stylesheet each time the palette changes. Placeholders (a token
+ * name between two at-signs) are filled from adwaita.tokens(); the img token is the folder
+ * holding the recoloured indicator images.
+ * Metrics are libadwaita's: 9px button/entry radius, 12px popover/card radius, 34px controls.
+ */
+
+/* ---------- Window surfaces ---------- */
+
+QDialog {
+    background-color: @dialog_bg@;
+}
+
+QMainWindow::separator {
+    background: @border@;
+    width: 1px;
+    height: 1px;
+}
+
+/* ---------- Toolbar as a headerbar ---------- */
+
+QToolBar {
+    background-color: @headerbar_bg@;
+    border: none;
+    border-bottom: 1px solid @shade@;
+    padding: 6px 6px;
+    spacing: 6px;
+}
+
+QToolBar::separator {
+    background: @border@;
+    width: 1px;
+    margin: 8px 4px;
+}
+
+QToolBar QToolButton {
+    background: transparent;
+    border: none;
+    border-radius: 9px;
+    padding: 5px 9px;
+    color: @fg@;
+}
+
+QToolButton:hover {
+    background: @hover@;
+}
+
+QToolButton:pressed,
+QToolButton:checked,
+QToolButton:open {
+    background: @active@;
+}
+
+/* Split buttons (action + menu, popupMode 1) as libadwaita's AdwSplitButton: the arrow is its
+ * own 24 px part with a 16 px pan-down icon and its own hover. In header bars and toolbars
+ * libadwaita draws a 1 px separator at currentColor 30 %, inset 6 px top and bottom, and hides
+ * it on hover/press ("headerbar splitbutton > separator" in default.css).
+ * The id-qualified selectors must out-rank the generic header-bar button padding. */
+QToolButton[popupMode="1"],
+#search_bar QToolButton[popupMode="1"] {
+    padding-right: 30px;
+}
+
+QToolButton::menu-button,
+#search_bar QToolButton::menu-button {
+    border: none;
+    border-left: 1px solid @separator@;
+    margin: 6px 0;
+    border-top-right-radius: 9px;
+    border-bottom-right-radius: 9px;
+    width: 24px;
+}
+
+QToolButton::menu-button:hover,
+#search_bar QToolButton::menu-button:hover {
+    background: @hover@;
+}
+
+QToolButton[popupMode="1"]:hover::menu-button,
+QToolButton[popupMode="1"]:pressed::menu-button,
+#search_bar QToolButton[popupMode="1"]:hover::menu-button,
+#search_bar QToolButton[popupMode="1"]:pressed::menu-button {
+    border-left-color: transparent;
+}
+
+QToolButton::menu-arrow,
+#search_bar QToolButton::menu-arrow {
+    image: url(@img@/pan-down.svg);
+    width: 16px;
+    height: 16px;
+}
+
+/* Menu-only buttons (popupMode 2, e.g. Virtual library, Saved searches, the main menu): GNOME
+ * header bars show the icon alone, no arrow. */
+QToolButton::menu-indicator {
+    image: url(@img@/pan-down-dim.svg);
+    width: 12px;
+    height: 12px;
+    subcontrol-origin: padding;
+    subcontrol-position: bottom right;
+}
+
+#search_bar QToolButton[popupMode="2"]::menu-indicator {
+    image: none;
+    width: 0;
+    height: 0;
+}
+
+/* Tag browser pane as a GNOME sidebar (the tree itself is styled through calibre's
+ * tree_view_hover_style hook, see main.Theme.hover_style). */
+TagBrowserWidget,
+TagBrowserBar {
+    background-color: @sidebar_bg@;
+}
+
+/* Its bottom bar (Configure, Find) as a libadwaita action bar: full-size flat buttons, and a
+ * labelled menu button with a normal 16 px arrow after the text. */
+TagBrowserBar QToolButton {
+    padding: 5px 10px;
+    border-radius: 9px;
+}
+
+TagBrowserBar QToolButton[popupMode="2"] {
+    padding-right: 30px;
+}
+
+TagBrowserBar QToolButton[popupMode="2"]::menu-indicator {
+    image: url(@img@/pan-down.svg);
+    subcontrol-origin: padding;
+    subcontrol-position: center right;
+    right: 8px;
+    width: 16px;
+    height: 16px;
+}
+
+/* The merged header bar: calibre's search row, now holding the toolbar too (headerbar.py). */
+#search_bar {
+    background-color: @headerbar_bg@;
+    /* No permanent border: like libadwaita's flat header bar, a shadow appears only once the
+     * content is scrolled underneath it (shade.py). */
+}
+
+#search_bar QToolBar {
+    background: transparent;
+    border: none;
+    padding: 0;
+}
+
+#search_bar QToolButton {
+    padding: 5px 9px;
+}
+
+/* libadwaita window controls: 24 px circles. */
+#search_bar QToolButton#adwaita_window_button {
+    background: @button_bg@;
+    border-radius: 12px;
+    padding: 4px;
+    margin-left: 6px;
+    min-width: 16px;
+    min-height: 16px;
+}
+
+#search_bar QToolButton#adwaita_window_button:hover {
+    background: @button_hover@;
+}
+
+#search_bar QToolButton#adwaita_window_button:pressed {
+    background: @button_active@;
+}
+
+/* List / Grid / Bookshelf: libadwaita's AdwToggleGroup (3 px trough, raised active toggle). */
+#adwaita_view_switcher {
+    background: @button_bg@;
+    border-radius: 9px;
+}
+
+#search_bar QToolButton#adwaita_view_toggle {
+    border-radius: 6px;
+    padding: 4px 8px;
+    min-width: 18px;
+    background: transparent;
+}
+
+#search_bar QToolButton#adwaita_view_toggle:hover {
+    background: @hover@;
+}
+
+#search_bar QToolButton#adwaita_view_toggle:checked {
+    background: @active_toggle@;
+}
+
+#adwaita_headerbar_gap {
+    background: transparent;
+    border: none;
+}
+
+/* Loose tool buttons outside the toolbar (search bar, panels) stay flat too. */
+QToolButton {
+    border: none;
+    border-radius: 9px;
+    padding: 3px;
+    background: transparent;
+}
+
+/* ---------- Buttons ---------- */
+
+QPushButton {
+    background-color: @button_bg@;
+    color: @fg@;
+    border: none;
+    border-radius: 9px;
+    padding: 5px 12px;
+    min-height: 20px;
+}
+
+QPushButton:hover {
+    background-color: @button_hover@;
+}
+
+QPushButton:pressed,
+QPushButton:checked {
+    background-color: @button_active@;
+}
+
+QPushButton:default {
+    background-color: @accent_bg@;
+    color: @accent_fg@;
+}
+
+QPushButton:default:hover {
+    background-color: @accent_hover@;
+}
+
+QPushButton:disabled {
+    color: @fg_disabled@;
+    background-color: @hover@;
+}
+
+QPushButton:flat {
+    background: transparent;
+}
+
+QPushButton:flat:hover {
+    background: @hover@;
+}
+
+QPushButton::menu-indicator {
+    image: url(@img@/pan-down.svg);
+    subcontrol-origin: padding;
+    subcontrol-position: center right;
+    right: 6px;
+    width: 12px;
+    height: 12px;
+}
+
+QPushButton:focus,
+QToolButton:focus {
+    outline: none;
+}
+
+/* ---------- Entries, spin boxes, combo boxes ---------- */
+
+QLineEdit,
+QAbstractSpinBox,
+QDateTimeEdit,
+QComboBox {
+    background-color: @button_bg@;
+    background-clip: padding;
+    color: @fg@;
+    border: 2px solid transparent;
+    border-radius: 9px;
+    padding: 4px 8px;
+    min-height: 20px;
+    selection-background-color: @selection_bg@;
+    selection-color: @fg@;
+}
+
+QLineEdit:hover,
+QAbstractSpinBox:hover,
+QComboBox:hover {
+    background-color: @button_hover@;
+}
+
+QLineEdit:focus,
+QAbstractSpinBox:focus,
+QComboBox:focus,
+QComboBox:on {
+    border-color: @focus_ring@;
+    background-color: @button_bg@;
+}
+
+QLineEdit:disabled,
+QAbstractSpinBox:disabled,
+QComboBox:disabled {
+    color: @fg_disabled@;
+    background-color: @hover@;
+}
+
+/* A line edit inside a combo box is the combo's own field: no second frame. */
+QComboBox QLineEdit,
+QComboBox QLineEdit:hover,
+QComboBox QLineEdit:focus {
+    background: transparent;
+    border: none;
+    padding: 0;
+    min-height: 0;
+}
+
+QComboBox {
+    padding-right: 24px;
+}
+
+QComboBox::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: center right;
+    border: none;
+    width: 24px;
+}
+
+QComboBox::down-arrow {
+    image: url(@img@/pan-down.svg);
+    width: 14px;
+    height: 14px;
+}
+
+QComboBox QAbstractItemView {
+    background-color: @popover_bg@;
+    color: @fg@;
+    border: 1px solid @border@;
+    border-radius: 12px;
+    padding: 6px;
+    outline: none;
+    selection-background-color: @hover@;
+    selection-color: @fg@;
+}
+
+QComboBox QAbstractItemView::item {
+    min-height: 28px;
+    padding: 0 8px;
+    border-radius: 6px;
+}
+
+QComboBox QAbstractItemView::item:hover,
+QComboBox QAbstractItemView::item:selected {
+    background-color: @hover@;
+    color: @fg@;
+}
+
+QAbstractSpinBox {
+    padding-right: 22px;
+}
+
+QDateTimeEdit::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: center right;
+    border: none;
+    background: transparent;
+    width: 22px;
+}
+
+QDateTimeEdit::down-arrow {
+    image: url(@img@/pan-down.svg);
+    width: 14px;
+    height: 14px;
+}
+
+QAbstractSpinBox::up-button,
+QAbstractSpinBox::down-button {
+    subcontrol-origin: border;
+    border: none;
+    width: 20px;
+    background: transparent;
+}
+
+QAbstractSpinBox::up-button {
+    subcontrol-position: top right;
+    border-top-right-radius: 9px;
+}
+
+QAbstractSpinBox::down-button {
+    subcontrol-position: bottom right;
+    border-bottom-right-radius: 9px;
+}
+
+QAbstractSpinBox::up-button:hover,
+QAbstractSpinBox::down-button:hover {
+    background: @hover@;
+}
+
+QAbstractSpinBox::up-arrow {
+    image: url(@img@/pan-up.svg);
+    width: 10px;
+    height: 10px;
+}
+
+QAbstractSpinBox::down-arrow {
+    image: url(@img@/pan-down.svg);
+    width: 10px;
+    height: 10px;
+}
+
+QAbstractSpinBox::up-arrow:disabled,
+QAbstractSpinBox::up-arrow:off {
+    image: url(@img@/pan-up-dim.svg);
+}
+
+QAbstractSpinBox::down-arrow:disabled,
+QAbstractSpinBox::down-arrow:off {
+    image: url(@img@/pan-down-dim.svg);
+}
+
+/* Editable multi-line text: a view-coloured card. Read-only browsers (book details) stay flat. */
+QTextEdit[readOnly="false"],
+QPlainTextEdit[readOnly="false"] {
+    background-color: @view_bg@;
+    color: @view_fg@;
+    border: 1px solid @border@;
+    border-radius: 9px;
+    selection-background-color: @selection_bg@;
+    selection-color: @view_fg@;
+}
+
+/* ---------- Check boxes and radio buttons ---------- */
+
+QCheckBox,
+QRadioButton {
+    spacing: 8px;
+}
+
+QCheckBox::indicator,
+QRadioButton::indicator,
+QGroupBox::indicator,
+QAbstractItemView::indicator {
+    width: 14px;
+    height: 14px;
+    border: 2px solid @border@;
+    background: transparent;
+}
+
+QCheckBox::indicator,
+QGroupBox::indicator,
+QAbstractItemView::indicator {
+    border-radius: 5px;
+}
+
+QRadioButton::indicator {
+    border-radius: 9px;
+}
+
+QCheckBox::indicator:hover,
+QRadioButton::indicator:hover,
+QGroupBox::indicator:hover,
+QAbstractItemView::indicator:hover {
+    background: @hover@;
+}
+
+QCheckBox::indicator:checked,
+QGroupBox::indicator:checked,
+QAbstractItemView::indicator:checked {
+    background: @accent_bg@;
+    border-color: @accent_bg@;
+    image: url(@img@/check.svg);
+}
+
+QCheckBox::indicator:indeterminate,
+QAbstractItemView::indicator:indeterminate {
+    background: @accent_bg@;
+    border-color: @accent_bg@;
+    image: url(@img@/mixed.svg);
+}
+
+QRadioButton::indicator:checked {
+    background: @accent_bg@;
+    border-color: @accent_bg@;
+    image: url(@img@/radio-dot.svg);
+}
+
+QCheckBox::indicator:disabled,
+QRadioButton::indicator:disabled {
+    border-color: @hover@;
+}
+
+QCheckBox:disabled,
+QRadioButton:disabled {
+    color: @fg_disabled@;
+}
+
+/* ---------- Menus ---------- */
+
+QMenuBar {
+    background: @headerbar_bg@;
+}
+
+QMenuBar::item {
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: transparent;
+}
+
+QMenuBar::item:selected {
+    background: @hover@;
+}
+
+QMenu {
+    background-color: @popover_bg@;
+    color: @fg@;
+    border: 1px solid @border@;
+    border-radius: 12px;
+    padding: 6px;
+}
+
+QMenu::item {
+    padding: 6px 24px 6px 10px;
+    border-radius: 6px;
+    background: transparent;
+}
+
+QMenu::item:selected {
+    background-color: @hover@;
+    color: @fg@;
+}
+
+QMenu::item:disabled {
+    color: @fg_disabled@;
+}
+
+QMenu::icon {
+    padding-left: 8px;
+}
+
+QMenu::separator {
+    height: 1px;
+    background: @border@;
+    margin: 6px 4px;
+}
+
+QMenu::right-arrow {
+    image: url(@img@/pan-end.svg);
+    width: 14px;
+    height: 14px;
+    margin-right: 6px;
+}
+
+QMenu::indicator {
+    width: 16px;
+    height: 16px;
+    padding-left: 6px;
+}
+
+QMenu::indicator:checked {
+    image: url(@img@/check-fg.svg);
+}
+
+/* ---------- Tooltips ---------- */
+
+QToolTip {
+    background-color: @tooltip_bg@;
+    color: @tooltip_fg@;
+    border: none;
+    border-radius: 6px;
+    padding: 5px 8px;
+}
+
+/* ---------- Tabs: libadwaita's inline view switcher ---------- */
+
+QTabWidget::pane {
+    border: none;
+    border-top: 1px solid @border@;
+    top: -1px;
+}
+
+QTabBar {
+    qproperty-drawBase: 0;
+}
+
+QTabBar::tab,
+QTabBar::tab:selected,
+QTabBar::tab:top:selected,
+QTabBar::tab:bottom:selected,
+QTabBar::tab:first:selected,
+QTabBar::tab:last:selected,
+QTabBar::tab:only-one {
+    font-style: normal;
+    background: transparent;
+    color: @fg_dim@;
+    border: none;
+    border-radius: 9px;
+    padding: 6px 12px;
+    margin: 3px 2px;
+}
+
+QTabBar::tab:hover {
+    background: @hover@;
+    color: @fg@;
+}
+
+QTabBar::tab:selected,
+QTabBar::tab:top:selected,
+QTabBar::tab:bottom:selected,
+QTabBar::tab:first:selected,
+QTabBar::tab:last:selected,
+QTabBar::tab:only-one:selected {
+    background: @button_bg@;
+    color: @fg@;
+}
+
+QTabBar::close-button {
+    subcontrol-position: right;
+}
+
+QTabBar QToolButton {
+    background: @popover_bg@;
+}
+
+/* ---------- Item views ---------- */
+
+QAbstractItemView {
+    background-color: @view_bg@;
+    alternate-background-color: @alternate_base@;
+    color: @view_fg@;
+    selection-background-color: @selection_bg@;
+    selection-color: @view_fg@;
+    outline: none;
+}
+
+QListView,
+QTreeView,
+QTableView {
+    border: none;
+}
+
+QHeaderView {
+    background: @view_bg@;
+    border: none;
+}
+
+QHeaderView::section {
+    background: @view_bg@;
+    color: @fg_dim@;
+    border: none;
+    border-bottom: 1px solid @border@;
+    border-right: 1px solid @border@;
+    padding: 4px 8px;
+    font-weight: bold;
+}
+
+QHeaderView::section:last {
+    border-right: none;
+}
+
+QHeaderView::section:hover {
+    background: @hover@;
+}
+
+QHeaderView::up-arrow {
+    image: url(@img@/pan-up-dim.svg);
+    width: 10px;
+    height: 10px;
+    subcontrol-position: center right;
+    right: 4px;
+}
+
+QHeaderView::down-arrow {
+    image: url(@img@/pan-down-dim.svg);
+    width: 10px;
+    height: 10px;
+    subcontrol-position: center right;
+    right: 4px;
+}
+
+QTableCornerButton::section {
+    background: @view_bg@;
+    border: none;
+}
+
+/* ---------- Scroll bars ----------
+ * Not styled here on purpose: the plugin switches calibre's style to transient (overlay)
+ * scroll bars, which Qt's Fusion style draws thin and fades out like GNOME's. Any QScrollBar
+ * rule would make Qt's stylesheet engine draw them instead, permanently visible. */
+
+QAbstractScrollArea::corner {
+    background: transparent;
+}
+
+/* ---------- Group boxes as libadwaita cards ---------- */
+
+QGroupBox {
+    background-color: @card_bg@;
+    border: 1px solid @border@;
+    border-radius: 12px;
+    margin-top: 1.6em;
+    padding: 10px 8px 8px 8px;
+}
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    left: 4px;
+    padding: 0 4px;
+    color: @fg@;
+    font-weight: bold;
+}
+
+QGroupBox:flat {
+    background: transparent;
+    border: none;
+    border-top: 1px solid @border@;
+    border-radius: 0;
+}
+
+/* ---------- Progress bars and sliders ---------- */
+
+QProgressBar {
+    background: @trough@;
+    border: none;
+    border-radius: 9px;
+    text-align: center;
+    color: @fg@;
+    min-height: 18px;
+}
+
+QProgressBar::chunk {
+    background: @accent_bg@;
+    border-radius: 9px;
+}
+
+QSlider::groove:horizontal {
+    background: @trough@;
+    height: 4px;
+    border-radius: 2px;
+}
+
+QSlider::groove:vertical {
+    background: @trough@;
+    width: 4px;
+    border-radius: 2px;
+}
+
+QSlider::sub-page:horizontal,
+QSlider::add-page:vertical {
+    background: @accent_bg@;
+    border-radius: 2px;
+}
+
+QSlider::handle {
+    background: #ffffff;
+    border: 1px solid @shade@;
+    width: 18px;
+    height: 18px;
+    margin: -8px 0;
+    border-radius: 10px;
+}
+
+QSlider::handle:vertical {
+    margin: 0 -8px;
+}
+
+/* ---------- Status bar, splitters ---------- */
+
+QStatusBar {
+    background: @window_bg@;
+    color: @fg_dim@;
+    border: none;
+    /* libadwaita bars: 6 px vertical padding; text kept clear of the rounded corners. */
+    padding: 6px 12px;
+}
+
+QStatusBar QLabel,
+QStatusBar QToolButton {
+    padding: 0 4px;
+}
+
+QStatusBar::item {
+    border: none;
+}
+
+QSplitter::handle {
+    background: @border@;
+}
+
+QSplitter::handle:horizontal {
+    width: 1px;
+}
+
+QSplitter::handle:vertical {
+    height: 1px;
+}
+
+QFrame[frameShape="4"],
+QFrame[frameShape="5"] {
+    color: @border@;
+}
