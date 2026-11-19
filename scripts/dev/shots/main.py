@@ -157,6 +157,14 @@ class Shots(InterfaceAction):
         for name, s in (('top', sh.top), ('bottom', sh.bottom)):
             self.check(span(s) == span(pane),
                        f'tag browser {name} shade spans the pane (shade {span(s)}, pane {span(pane)})')
+        hb = self.gui.search_bar
+        header = hb.mapTo(self.gui, QPoint(0, hb.height())).y()
+        st = sh.top.mapTo(self.gui, QPoint(0, 0)).y()
+        self.check(st == header,
+                   f'tag browser top shade starts at the header bar (shade {st}, header {header})')
+        tb = tv.mapTo(self.gui, QPoint(0, tv.height())).y()
+        sb_ = sh.bottom.mapTo(self.gui, QPoint(0, sh.bottom.height())).y()
+        self.check(sb_ == tb, f'tag browser bottom shade ends on the bottom bar (shade {sb_}, tree {tb})')
 
     def perf(self):
         # Time cover-grid repaints with and without the plugin's card shadow, and the full

@@ -105,8 +105,9 @@ class ScrollAreaShades(QObject):
     """The same raised-bar shadows for a single scroll area (the tag browser): under the header
     bar once scrolled, above the bottom bar (Configure / Find) while more lies below.
 
-    The shades take the viewport's top and bottom but run edge to edge across ``pane`` (default:
-    the scroll area itself), so the content's padding does not leave them short at the sides.
+    The shades run edge to edge across ``pane`` (default: the scroll area itself), from its top
+    and bottom, so the content's padding does not leave them short at the sides or push them
+    away from the bars.
     For a pane, they are children of the pane's parent: BookDetails is a QSplitter, which adopts
     every child widget as a new splitter section."""
 
@@ -143,9 +144,13 @@ class ScrollAreaShades(QObject):
                 pr = area.rect()
             left = pr.left() if vp.left() - pr.left() <= EDGE_SNAP else vp.left()
             right = pr.right() if pr.right() - vp.right() <= EDGE_SNAP else vp.right()
+            # The same snap vertically: the shades start right under the header bar and end
+            # right on the bottom bar, not at the viewport's padded top and bottom.
+            top = pr.top() if vp.top() - pr.top() <= EDGE_SNAP else vp.top()
+            bottom = pr.bottom() if pr.bottom() - vp.bottom() <= EDGE_SNAP else vp.bottom()
             width = right - left + 1
-            self.top.setGeometry(left, vp.top(), width, HEIGHT)
-            self.bottom.setGeometry(left, vp.bottom() - HEIGHT + 1, width, HEIGHT)
+            self.top.setGeometry(left, top, width, HEIGHT)
+            self.bottom.setGeometry(left, bottom - HEIGHT + 1, width, HEIGHT)
             sb = area.verticalScrollBar()
             shown = area.isVisible()
             self.top.setVisible(shown and sb.value() > sb.minimum())
