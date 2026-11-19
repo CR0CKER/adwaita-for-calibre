@@ -26,6 +26,7 @@ class Shots(InterfaceAction):
         self.steps = [
             ('main', self.main), ('focus', self.focus), ('statusbar', self.statusbar), ('hover', self.hover),
             ('layoutmenu', self.layoutmenu), ('scrolled', self.scrolled),
+            ('sidebar', self.sidebar),
             ('menu', self.menu),
             ('menus', self.menus), ('grid', self.grid),
             ('prefs', self.prefs), ('metadata', self.metadata), ('news', self.news),
@@ -75,6 +76,20 @@ class Shots(InterfaceAction):
                                      self.save(self.gui, 'scrolled'),
                                      print('STATUS', self.gui.status_bar.defmsg.text(), flush=True),
                                      self.next()))
+        self.later(800, go)
+
+    def sidebar(self):
+        # Expand everything in the tag browser so it scrolls, then scroll it a little.
+        tv = self.gui.tags_view
+        tv.expandAll()
+
+        def go():
+            sb = tv.verticalScrollBar()
+            sb.setValue(min(sb.maximum(), 60))
+            sh = tv._adwaita_shades
+            self.later(500, lambda: (print('SIDEBAR range', sb.maximum(), 'value', sb.value(), 'top',
+                                           sh.top.isVisible(), 'bottom', sh.bottom.isVisible(), flush=True),
+                                     self.save(self.gui, 'sidebar'), self.next()))
         self.later(800, go)
 
     def layoutmenu(self):

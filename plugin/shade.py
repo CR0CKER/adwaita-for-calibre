@@ -94,3 +94,44 @@ def install(gui):
         return None
     gui._adwaita_shade = c = Controller(gui, av.stack, av)
     return c
+
+
+class ScrollAreaShades(QObject):
+    """The same raised-bar shadows for a single scroll area (the tag browser): under the header
+    bar once scrolled, above the bottom bar (Configure / Find) while more lies below."""
+
+    def __init__(self, area):
+        super().__init__(area)
+        self.area = area
+        self.top = Shade(area, 'top')
+        self.bottom = Shade(area, 'bottom')
+        sb = area.verticalScrollBar()
+        sb.valueChanged.connect(self.update)
+        sb.rangeChanged.connect(self.update)
+        area.installEventFilter(self)
+        self.update()
+
+    def eventFilter(self, obj, ev):
+        if ev.type() in (QEvent.Type.Resize, QEvent.Type.Show):
+            self.update()
+        return False
+
+    def update(self, *args):
+        try:
+            vp = self.area.viewport().geometry()
+            sb = self.area.verticalScrollBar()
+            self.top.setGeometry(vp.left(), vp.top(), vp.width(), HEIGHT)
+            self.bottom.setGeometry(vp.left(), vp.bottom() - HEIGHT + 1, vp.width(), HEIGHT)
+            self.top.setVisible(sb.value() > sb.minimum())
+            self.bottom.setVisible(sb.value() < sb.maximum())
+            self.top.raise_()
+            self.bottom.raise_()
+        except RuntimeError:
+            pass
+
+
+def install_sidebar(gui):
+    from qt.core import QTreeView
+    for tv in gui.findChildren(QTreeView):
+        if type(tv).__name__ == 'TagsView':
+            tv._adwaita_shades = ScrollAreaShades(tv)

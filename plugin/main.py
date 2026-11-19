@@ -510,6 +510,7 @@ class AdwaitaAction(InterfaceAction):
             from calibre_plugins.adwaita_for_calibre import panes, shade, statusbar
             panes.install(self.gui)
             shade.install(self.gui)
+            shade.install_sidebar(self.gui)
             statusbar.install(self.gui)
             from calibre_plugins.adwaita_for_calibre import viewer
             if prefs()['theme_viewer']:
