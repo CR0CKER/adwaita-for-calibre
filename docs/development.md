@@ -9,7 +9,7 @@
 | `plugin/main.py` | Entry point and Qt glue: palette, stylesheet hook, popup translucency and shadows, font, accent watcher, plugin-rendered icons, toolbar icon size, sidebar styling, plugin prefs |
 | `plugin/headerbar.py` | Merges toolbar and search row into one header bar; view switcher; main menu; Preferences check |
 | `plugin/frameless.py` | Optional integrated title bar (X11/XWayland) |
-| `plugin/panes.py` | Sidebar \| content \| sidebar: details pane as sidebar, hairline splitters, hidden panes 0 px |
+| `plugin/panes.py` | Pane \| content \| pane in one surface (`pane_bg`), hairline splitters, hidden panes 0 px |
 | `plugin/shade.py` | Raised-bar shadows over the book area and the tag browser |
 | `plugin/covers.py` | Cover card shadow (grid, details pane), cached |
 | `plugin/bookshelf.py` | Flat Adwaita colours for the bookshelf view |
@@ -146,5 +146,8 @@ images render as a solid square; `tests/test_icons.py` rejects them. Off-centre 
 3. Merge through a PR, then push the tag `vX.Y.Z` on `main`. `.github/workflows/release.yml`
    checks the tag against the plugin version, builds the zip, attests its build provenance and
    creates a **draft** release. Write the notes from the CHANGELOG, then publish.
+4. Once the plugin is in calibre's plugin index: replace the zip on the first post of the MobileRead
+   thread with the release zip (exactly one zip there). calibre's *Get new plugins* downloads from
+   that post, not from GitHub.
 
 No SBOM: the zip bundles no third-party code; the bundled GNOME icons are credited in the README.

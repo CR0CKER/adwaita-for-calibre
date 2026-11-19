@@ -103,8 +103,8 @@ class Theme:
             'pan-end.svg': ('pan-end-symbolic.svg', t['fg']),
             'pan-end-dim.svg': ('pan-end-symbolic.svg', t['fg_dim']),
             # libadwaita expander: pan-end-symbolic at currentColor 70 %
-            'expander-closed.svg': ('pan-end-symbolic.svg', adwaita.mix(t['fg'], t['sidebar_bg'], 0.7)),
-            'expander-open.svg': ('pan-down-symbolic.svg', adwaita.mix(t['fg'], t['sidebar_bg'], 0.7)),
+            'expander-closed.svg': ('pan-end-symbolic.svg', adwaita.mix(t['fg'], t['pane_bg'], 0.7)),
+            'expander-open.svg': ('pan-down-symbolic.svg', adwaita.mix(t['fg'], t['pane_bg'], 0.7)),
             'check.svg': ('object-select-symbolic.svg', t['accent_fg']),
             'check-fg.svg': ('object-select-symbolic.svg', t['fg']),
             'radio-dot.svg': ('radio-dot.svg', t['accent_fg']),
@@ -185,7 +185,7 @@ class Theme:
         img = self.image_dir(dark, t)
         return f'''
             QTreeView {{
-                background-color: {t['sidebar_bg']};
+                background-color: {t['pane_bg']};
                 color: {t['fg']};
                 border: none;
                 selection-background-color: {t['button_bg']};

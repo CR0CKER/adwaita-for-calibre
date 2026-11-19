@@ -28,8 +28,8 @@ Preferences can be removed from the toolbar since it lives in the main menu.
 check boxes, radio buttons, menus and popovers with libadwaita's outline and shadow, view-switcher
 tabs, overlay scroll bars that fade out, flat column headers, cards for group boxes.
 
-**A three-pane layout.** The tag browser and the book details pane are GNOME sidebars around the
-book area, separated by hairlines instead of splitter grips. The tag browser gets rounded rows,
+**A three-pane layout.** The tag browser and the book details pane share the book area's colour
+and are set off from it by hairlines instead of splitter grips. The tag browser gets rounded rows,
 GNOME expanders and an action bar for Configure / Find. Shadows appear under the header bar and
 above the status bar only while content is scrolled beneath them. The status bar shows just the
 book count and selection.

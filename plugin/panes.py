@@ -1,11 +1,11 @@
-"""Three-pane layout as libadwaita does it: sidebar | content | sidebar.
+"""Three-pane layout: pane | content | pane, all in one surface.
 
-* The book details pane on the right becomes a sidebar too (an AdwOverlaySplitView utility pane
-  uses the same sidebar style as the navigation sidebar on the left), framing the book area,
-  which stays the only view-coloured surface.
-* calibre's splitter grips (the dots, CalibreStyle's CE_Splitter) become libadwaita's 1 px
-  sidebar border on the sidebar side; the rest of the handle takes the content colour. Panes stay
-  resizable: the handle keeps its width, only its painting changes.
+* The tag browser (left) and book details (right) use the content colour (`pane_bg`), so they read
+  as part of the book area rather than of the header bar; a 1 px hairline (libadwaita's
+  --border-color) on the pane's side of each splitter handle separates them.
+* calibre's splitter grips (the dots, CalibreStyle's CE_Splitter) become that hairline; the rest
+  of the handle takes the content colour. Panes stay resizable: the handle keeps its width, only
+  its painting changes.
 * The details pane gets 12 px insets, so the cover sits on it as a card.
 """
 
@@ -20,10 +20,10 @@ def _tokens():
     return adwaita.tokens(QApplication.instance().palette_manager.is_dark_theme)
 
 
-def _sidebar_border(dark):
-    # --sidebar-border-color: rgb(0 0 6 / 36%) dark, 7 % light
-    c = QColor(0, 0, 6)
-    c.setAlphaF(0.36 if dark else 0.07)
+def _hairline(dark):
+    # libadwaita --border-color: currentColor at 15 % (white in dark, rgb(0 0 6 / 80%) in light).
+    c = QColor(255, 255, 255) if dark else QColor(0, 0, 6)
+    c.setAlphaF(0.15 if dark else 0.12)
     return c
 
 
@@ -50,7 +50,7 @@ def install(gui):
                 # header bar.
                 p.end()
                 return
-            line = _sidebar_border(dark)
+            line = _hairline(dark)
             parent = self.parentWidget()
             if self.orientation is Qt.Orientation.Vertical:
                 # Vertical handle between side-by-side panes: border on the sidebar's side.

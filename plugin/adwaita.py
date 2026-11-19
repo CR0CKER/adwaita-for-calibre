@@ -140,6 +140,9 @@ def tokens(dark: bool, accent: str = DEFAULT_ACCENT) -> dict[str, str]:
     t['fg_dim'] = mix(fg, win, fg_a * 0.55)
     t['fg_disabled'] = mix(fg, win, fg_a * 0.5)
     t['view_fg'] = mix(fg, t['view_bg'], fg_a)
+    # Side panes (tag browser, book details) share the content colour and are set off from it by
+    # a hairline only, so they read as part of the content rather than of the header bar.
+    t['pane_bg'] = t['view_bg']
 
     # Translucent overlays for QSS (rgba); they composite over whatever surface is underneath.
     def over(alpha: float) -> str:

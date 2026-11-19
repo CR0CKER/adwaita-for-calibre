@@ -6,7 +6,9 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
-First release (0.1.0) in preparation.
+## [0.1.0] - 2026-11-19
+
+First release.
 
 ### Added
 
@@ -18,8 +20,8 @@ First release (0.1.0) in preparation.
 - One header bar: toolbar and search row merged; centred search with Virtual library and saved
   searches; List / Grid / Bookshelf view switcher; ☰ main menu; split buttons as AdwSplitButton;
   16 px "Small" toolbar icons; Preferences can be removed from the toolbar.
-- Sidebar | content | sidebar layout: tag browser and book details as GNOME sidebars, hairline
-  dividers instead of splitter grips, hidden panes take no space.
+- Pane | content | pane layout: tag browser and book details in the book area's colour, set off by
+  hairline dividers instead of splitter grips; hidden panes take no space.
 - Tag browser: rounded rows, 16 px expanders, readable hover text, action-bar Configure / Find.
 - Raised-bar shadows under the header bar and above the status bar while content is scrolled.
 - Status bar with just the book count and selection; Layout popup as a popover.
@@ -55,3 +57,6 @@ First release (0.1.0) in preparation.
   write its old settings back on exit (audit L4).
 - The integrated title bar's X11 connection is closed when calibre quits, and X11 calls after
   that are skipped instead of reaching libX11 with a null display (audit L6).
+
+[Unreleased]: https://github.com/CR0CKER/adwaita-for-calibre/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/CR0CKER/adwaita-for-calibre/releases/tag/v0.1.0

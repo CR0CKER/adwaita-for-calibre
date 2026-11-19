@@ -107,14 +107,14 @@ QToolButton::menu-indicator {
     height: 0;
 }
 
-/* Tag browser pane as a GNOME sidebar (the tree itself is styled through calibre's
+/* Tag browser and book details panes, in the content colour (pane_bg) (the tree itself is styled through calibre's
  * tree_view_hover_style hook, see main.Theme.hover_style). */
 TagBrowserWidget,
 TagBrowserBar,
 BookDetails,
 BookDetails CoverView,
 BookDetails QTextBrowser {
-    background-color: @sidebar_bg@;
+    background-color: @pane_bg@;
 }
 
 /* Edit metadata: the formats list as a card; the comments editor sits inside its group card
