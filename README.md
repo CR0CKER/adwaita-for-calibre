@@ -21,7 +21,8 @@ changes when you change it). The GNOME interface font is used unless you set one
 **One header bar.** The toolbar and the search row become a single GNOME header bar: your actions
 on the left, a centred search field with Virtual library and saved searches, a List · Grid ·
 Bookshelf view switcher, and a ☰ main menu (Preferences, all actions, Help, Restart). Sidebar
-toggles at either end show and hide the tag browser and the book details pane. Split
+toggles at either end show and hide the tag browser and the book details pane, which slide in
+and out (Shift+Alt+T and Shift+Alt+D do the same). Split
 buttons look like GNOME's split buttons, "Small" toolbar icons are GNOME's 16 px, and
 Preferences can be removed from the toolbar since it lives in the main menu.
 

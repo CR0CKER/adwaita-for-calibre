@@ -10,6 +10,7 @@
 | `plugin/headerbar.py` | Merges toolbar and search row into one header bar; view switcher; main menu; Preferences check |
 | `plugin/frameless.py` | Optional integrated title bar (X11/XWayland) |
 | `plugin/panes.py` | Pane \| content \| pane in one surface (`pane_bg`), hairline splitters, hidden panes 0 px |
+| `plugin/slide.py` | Side panes slide in and out (snapshot overlay over calibre's final layout) |
 | `plugin/shade.py` | Raised-bar shadows over the book area and the tag browser |
 | `plugin/covers.py` | Cover card shadow (grid, details pane), cached |
 | `plugin/bookshelf.py` | Flat Adwaita colours for the bookshelf view |
@@ -63,6 +64,14 @@
   overlay erases the four corners anti-aliased (masks cannot be) and only paints when a corner
   is dirty. The window manager takes the pointer after `startSystemMove`, so a double-click is
   not delivered.
+- **Pane slide** (`slide.py`). Re-running calibre's layout per animation frame costs 70-80 ms a
+  frame here (the book grid or list re-lays out and the whole window repaints), so the slide is
+  played on two grabs of the central container (before; after one event-loop turn) composed by an
+  overlay, at 10-15 ms a frame, while the real widgets are already in their final place. A pane
+  that was just shown lays its cover out lazily, so `BookDetails.do_layout` runs before the second
+  grab; that re-enters `relayout`, which `_adwaita_starting` lets through. Any failure finishes
+  the overlay, so it can never stay up. Wide layout only; respects calibre's *Disable animations*.
+  `ADWAITA_SLIDE_TIMING=1` prints per-frame timings.
 - **Panes.** `SplitterHandle.COLLAPSED_SIZE = 0`: calibre's 2 px stub for a hidden pane is a strip
   the content cannot scroll under; above the book area it read as a line under the header bar.
 - **Icons.** calibre loads user themes from `<config>/icons-{any,dark,light}.rcc`, built with
@@ -99,7 +108,7 @@ Steps in `scripts/dev/shots/main.py`: `main`, `focus`, `statusbar`, `hover`, `la
 `scrolled`, `sidebar`, `perf` (times grid and window repaints), `edges` (lists widgets at the
 header's edge), `toggles` (hides/shows panes), `menu`, `menus` (every menu), `grid`, `prefs`,
 `metadata`, `news`, `details` (scrolled book description), `sidetoggle` (header-bar sidebar
-toggles), `flip` (live light/dark switch), `views`, `closebtn`, `prefcheck`.
+toggles), `slide` (pane slide; `SLIDE_MID_MS`, `SLIDE_LIST`), `flip` (live light/dark switch), `views`, `closebtn`, `prefcheck`.
 
 `run.sh` uses a throwaway profile (`.dev/config`, `.dev/library`) and never touches the real
 calibre profile. Build the library with `calibre-debug -e scripts/dev/mklib.py -- .dev/library`

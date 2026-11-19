@@ -36,7 +36,7 @@ class Shots(InterfaceAction):
             ('layoutmenu', self.layoutmenu), ('scrolled', self.scrolled),
             ('sidebar', self.sidebar), ('perf', self.perf),
             ('edges', self.edges), ('details', self.details), ('toggles', self.toggles),
-            ('sidetoggle', self.sidetoggle),
+            ('sidetoggle', self.sidetoggle), ('slide', self.slide),
             ('reset', self.reset),
             ('menu', self.menu),
             ('menus', self.menus), ('grid', self.grid),
@@ -224,6 +224,40 @@ class Shots(InterfaceAction):
                     self.save(self.gui, f'sidetoggle-{t.name}')
                 step()
             self.later(500, report)
+        step()
+
+    def slide(self):
+        # Pane slide (plugin/slide.py): an overlay plays the slide while the real layout is
+        # already final; then it goes away and the real widgets show the end state.
+        c = self.gui.layout_container
+        stack = self.gui.library_view.alternate_views.stack
+        if os.environ.get('SLIDE_LIST'):
+            self.gui.grid_view_button.setChecked(False)
+        start_w = stack.geometry().width()
+        seq = [('tag_browser_button', 'tb'), ('tag_browser_button', 'tb'),
+               ('book_details_button', 'bd'), ('book_details_button', 'bd')]
+
+        def step():
+            if not seq:
+                self.check(stack.geometry().width() == start_w, 'book area back to its width')
+                self.next()
+                return
+            attr, tag = seq.pop(0)
+            btn = getattr(c, attr)
+            btn.click()
+            state = 'open' if btn.isChecked() else 'close'
+
+            def mid():
+                ov = getattr(c, '_adwaita_overlay', None)
+                self.check(ov is not None and ov.isVisible(), f'{tag} {state}: slide overlay playing')
+                if not os.environ.get('ADWAITA_SLIDE_TIMING'):  # a grab stalls the animation
+                    self.save(self.gui, f'slide-{tag}-{state}-mid')
+
+            def end():
+                self.check(getattr(c, '_adwaita_overlay', None) is None, f'{tag} {state}: overlay gone')
+                step()
+            self.later(int(os.environ.get('SLIDE_MID_MS') or 90), mid)
+            self.later(500, end)
         step()
 
     def toggles(self):
