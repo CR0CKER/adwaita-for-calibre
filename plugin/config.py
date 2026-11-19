@@ -102,6 +102,11 @@ class ConfigWidget(QWidget):
         row.addWidget(self.install_button)
         row.addWidget(self.restore_button)
         row.addStretch()
+        self.reset_button = QPushButton("Restore calibre's look")
+        self.reset_button.setToolTip(
+            "Before removing the plugin: restores your previous icons, calibre's own colours and the "
+            "e-book viewer's previous colour scheme, and turns viewer theming off.")
+        self.reset_button.clicked.connect(self.do_reset)
         layout.addLayout(row)
 
         from calibre_plugins.adwaita_for_calibre.main import prefs
@@ -120,6 +125,7 @@ class ConfigWidget(QWidget):
             'Takes effect after a restart.')
         self.viewer.setChecked(self.prefs['theme_viewer'])
         layout.addWidget(self.viewer)
+        layout.addWidget(self.reset_button)
         layout.addStretch()
         self.update_state()
 
@@ -149,6 +155,28 @@ class ConfigWidget(QWidget):
 
     def do_install(self):
         self.run(install, self.plugin.plugin_path)
+
+    def do_reset(self):
+        """Everything the plugin leaves in calibre's settings, undone (audit M4)."""
+        from calibre.gui2 import error_dialog, info_dialog
+        from calibre_plugins.adwaita_for_calibre import viewer
+        try:
+            if installed() or backups():
+                restore()
+            self.prefs['theme_viewer'] = False
+            self.viewer.setChecked(False)
+            viewer_done = viewer.unsync(self.prefs)
+        except Exception as e:  # noqa: BLE001 -- shown to the user in an error dialog
+            import traceback
+            error_dialog(self, 'Adwaita for calibre', str(e), det_msg=traceback.format_exc(), show=True)
+            return
+        msg = ("calibre's own icons and colours are restored. To finish, remove the plugin in "
+               'Preferences → Plugins and restart calibre.')
+        if not viewer_done:
+            msg += (' The e-book viewer is open, so its colour scheme could not be restored: close it '
+                    'and press this button again.')
+        info_dialog(self, 'Adwaita for calibre', msg, show=True, show_copy_button=False)
+        self.update_state()
 
     def do_restore(self):
         self.run(restore)

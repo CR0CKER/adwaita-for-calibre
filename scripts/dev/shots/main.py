@@ -16,6 +16,14 @@ class Shots(InterfaceAction):
         'toolbar', 'toolbar-device', 'toolbar-child', 'menubar', 'menubar-device', 'searchbar',
     ))
 
+    failures: list = []
+
+    def check(self, ok, what):
+        """Smoke assertion: printed, and remembered so the run exits non-zero (scripts/smoke.sh)."""
+        print(f'SMOKE {"ok  " if ok else "FAIL"} {what}', flush=True)
+        if not ok:
+            self.failures.append(what)
+
     def genesis(self):
         self.dir = os.environ.get('ADWAITA_SHOT_DIR')
         if not self.dir:
@@ -27,7 +35,7 @@ class Shots(InterfaceAction):
             ('main', self.main), ('focus', self.focus), ('statusbar', self.statusbar), ('hover', self.hover),
             ('layoutmenu', self.layoutmenu), ('scrolled', self.scrolled),
             ('sidebar', self.sidebar), ('perf', self.perf),
-            ('edges', self.edges), ('toggles', self.toggles),
+            ('edges', self.edges), ('toggles', self.toggles), ('reset', self.reset),
             ('menu', self.menu),
             ('menus', self.menus), ('grid', self.grid),
             ('prefs', self.prefs), ('metadata', self.metadata), ('news', self.news),
@@ -112,8 +120,11 @@ class Shots(InterfaceAction):
                     w.repaint()
                 ms = (time.perf_counter() - st) * 1000 / n
                 print(f'PERF {label}: {ms:.1f} ms/frame', flush=True)
+                return ms
 
-            t('grid viewport, card shadow on', vp)
+            budget = float(os.environ.get('SMOKE_FRAME_BUDGET_MS', '30'))
+            ms = t('grid viewport, card shadow on', vp)
+            self.check(ms <= budget, f'grid repaint {ms:.1f} ms <= {budget:.0f} ms budget')
             patched = CoverDelegate.paint_cover
             try:
                 from calibre_plugins.adwaita_for_calibre import covers
@@ -152,11 +163,17 @@ class Shots(InterfaceAction):
         hb = self.gui.search_bar
         y = hb.mapTo(self.gui, QPoint(0, hb.height())).y()
         print('EDGE header bottom at y =', y, flush=True)
+        stack = self.gui.library_view.alternate_views.stack
+        stack_top = stack.mapTo(self.gui, QPoint(0, 0)).y()
+        self.check(stack_top == y,
+                   f'book area starts at the header bar (stack top {stack_top}, header bottom {y})')
         for w in self.gui.findChildren(QWidget):
             if not w.isVisible() or w.isWindow():
                 continue
             top = w.mapTo(self.gui, QPoint(0, 0)).y()
             bottom = top + w.height()
+            if 0 < w.height() <= 4 and abs(top - y) <= 1 and w.width() > 40:
+                self.check(False, f'no thin strip under the header bar ({type(w).__name__} h={w.height()})')
             if abs(top - y) <= 3 or abs(bottom - y) <= 3 or (w.height() <= 4 and abs(top - y) <= 12):
                 print('EDGE', type(w).__name__, w.objectName(), 'top', top, 'h', w.height(), 'w', w.width(),
                       'ss' if w.styleSheet() else '', flush=True)
@@ -167,6 +184,8 @@ class Shots(InterfaceAction):
         buttons = {b.label: b for b in getattr(self.gui, 'layout_buttons', [])}
         names = [n for n in ('Tag browser', 'Book details', 'Cover browser') if n in buttons]
         seq = [(n, v) for n in names for v in (not buttons[n].isChecked(), buttons[n].isChecked())]
+        # Baseline width of the book area before any pane is toggled.
+        self._toggle_base = self.gui.library_view.alternate_views.stack.geometry().width()
 
         def step():
             if not seq:
@@ -178,9 +197,40 @@ class Shots(InterfaceAction):
                 b.click()
             stack = self.gui.library_view.alternate_views.stack
             state = 'visible' if visible else 'hidden'
-            self.later(500, lambda: (print('TOGGLE', name, state, 'stack', stack.geometry(), flush=True),
-                                     step()))
+
+            def report():
+                g = stack.geometry()
+                print('TOGGLE', name, state, 'stack', g, flush=True)
+                if name in ('Tag browser', 'Book details'):
+                    base = self._toggle_base
+                    if visible:
+                        self.check(g.width() == base, f'{name} shown again: book area back to {base}px')
+                    else:
+                        self.check(g.width() > base, f'{name} hidden: book area wider ({g.width()} > {base})')
+                step()
+            self.later(500, report)
         step()
+
+    def reset(self):
+        # M4/L4: sync the viewer settings, then undo them as the Restore button does.
+        from calibre.gui2 import gprefs
+        from calibre.gui2.viewer.config import vprefs
+        from calibre_plugins.adwaita_for_calibre import main as amain
+        from calibre_plugins.adwaita_for_calibre import viewer
+        prefs = amain.prefs()
+
+        def state(label):
+            print('RESET', label, 'names', gprefs['dark_palette_name'], gprefs['light_palette_name'],
+                  'keys', sorted(gprefs['dark_palettes'] or {}), 'scheme',
+                  (vprefs['session_data'] or {}).get('current_color_scheme'),
+                  'flag', prefs['viewer_scheme_set'], flush=True)
+        print('RESET viewer_running', viewer.viewer_running(), flush=True)
+        state('before')
+        viewer.sync(amain._THEME, prefs)
+        state('synced')
+        print('RESET unsync returned', viewer.unsync(prefs), flush=True)
+        state('restored')
+        self.next()
 
     def layoutmenu(self):
         from calibre.gui2.layout_menu import LayoutMenu
@@ -382,8 +432,13 @@ class Shots(InterfaceAction):
                 sw = self.gui.findChild(QFrame, 'adwaita_view_switcher')
                 print(f'VIEWS {kind} {key}: shown={current()} switcher={which()} '
                       f'search_w={self.gui.search.width()} switcher_x={sw.x()}', flush=True)
-                if kind == 'click' and key == 'grid' and not seq[1:2] == []:
-                    pass
+                self.check(current() == which(), f'view switcher follows {kind} {key} (shown {current()})')
+                pos = (self.gui.search.width(), sw.x())
+                first = getattr(self, '_views_pos', None)
+                if first is None:
+                    self._views_pos = pos
+                else:
+                    self.check(pos == first, f'header bar does not move on {kind} {key}')
                 self.save(self.gui, f'views-{len(seq)}')
                 step()
             self.later(700, report)
@@ -406,8 +461,9 @@ class Shots(InterfaceAction):
         try:
             w.commit()
             print('PREFCHECK saved without Preferences in toolbar/menubar', flush=True)
+            self.check(True, 'toolbar saves without Preferences (it is in the main menu)')
         except AbortCommit:
-            print('PREFCHECK refused', flush=True)
+            self.check(False, 'toolbar saves without Preferences (it is in the main menu)')
         self.later(300, self.next)
 
     def closebtn(self):
@@ -420,4 +476,7 @@ class Shots(InterfaceAction):
         self.later(8000, lambda: (print('CLOSEBTN still running', flush=True), self.next()))
 
     def quit(self):
-        QApplication.instance().exit(0)
+        if os.environ.get('ADWAITA_SMOKE'):
+            print(f'SMOKE {"OK" if not self.failures else "FAILED"} '
+                  f'({len(self.failures)} failure{"s" if len(self.failures) != 1 else ""})', flush=True)
+        QApplication.instance().exit(1 if self.failures else 0)

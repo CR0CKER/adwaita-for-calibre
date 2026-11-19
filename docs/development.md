@@ -67,10 +67,15 @@
   `calibre.utils.rcc.compile_icon_dir_as_themes`. The theme inherits `calibre-default`, so
   unmapped names fall through. Dark/light-only user themes would shadow the `any` slot, so
   install moves all three aside (`*.pre-adwaita`).
+- **Version drift.** `main.TESTED_WITH` is the calibre release last tested; a newer calibre logs a
+  one-line warning at startup.
 - **Viewer.** It loads no interface plugins and its `viewer.html`/`viewer.js` are
   `allow_user_override=False`. Two shared settings reach it: the custom palettes in `gprefs`
   (stored under the key `adwaita`, so a user's `__current__` palette is untouched) and the
-  viewer's built-in "System" colour scheme, which reads Base/Text/Link from that palette.
+  viewer's built-in "System" colour scheme, which reads Base/Text/Link from that palette. The
+  viewer writes its whole session back when it closes, so its settings are only changed while its
+  single-instance lock (`calibre_viewer`) is free. Customize → *Restore calibre's look* undoes
+  everything (icons, palettes, viewer scheme) before an uninstall.
 
 Dead ends: `CALIBRE_USE_SYSTEM_THEME=1` gives plain Fusion; `org.kde.KStyle.Adwaita` cannot load
 into the Flathub build (bundled Qt 6.10 on the freedesktop runtime). Qt's Wayland Adwaita
@@ -80,7 +85,8 @@ the README recommends XWayland.
 ## Dev loop
 
 ```bash
-scripts/gates.sh                          # ruff + unit tests; check the exit code
+scripts/gates.sh                          # ruff, mypy --strict, unit tests; check the exit code
+scripts/smoke.sh [dark|light]             # behavioural smoke gate (local, needs calibre)
 scripts/dev/run.sh v5 dark                # screenshots -> .dev/shots/v5-*.png, then quits
 scripts/dev/run.sh v5 light
 scripts/dev/run.sh before dark plain      # same, without the plugin
@@ -99,6 +105,19 @@ lock is an abstract Unix socket keyed on the uid; abstract sockets are per netwo
 the dev instance runs with `flatpak run --unshare=network`. A fresh profile also needs
 `welcome_wizard_was_run`, which `run.sh` sets. Install the current icons into the dev profile with
 `calibre-debug -e scripts/dev/icons_test.py -- <zip> $PWD install`.
+
+**Smoke gate** (`scripts/smoke.sh`). CI cannot run calibre, so the Qt layer is checked locally:
+the harness steps `views`, `toggles`, `prefcheck`, `edges` and `perf` assert behaviour (`SMOKE ok`
+/ `SMOKE FAIL` lines; the run exits non-zero on any failure): the view switcher follows clicks and
+shortcuts and the header bar does not move, hidden panes free their space and come back, the
+toolbar saves without Preferences, the book area starts right under the header bar with no strip
+in between, and a grid repaint stays within `SMOKE_FRAME_BUDGET_MS` (default 30). Run it before
+every release and after touching the Qt modules.
+
+**Type checking.** `mypy --strict` covers the modules that import neither calibre nor Qt
+(`plugin/adwaita.py`, `icons/mapping.py`); the rest cannot be imported in CI. ruff and mypy are
+hash-locked in `requirements-dev.txt`, compiled from `requirements-dev.in` with
+`uv pip compile --generate-hashes`.
 
 Screenshots are taken in-process with `QWidget.grab()`, which works on Wayland without the
 screenshot portal. Programmatic scrolling of the book *list* does not render in grabs; the tag
@@ -120,6 +139,12 @@ images render as a solid square; `tests/test_icons.py` rejects them. Off-centre 
 
 ## Release
 
-1. Bump `version` in `plugin/__init__.py`, update `CHANGELOG.md`.
-2. `scripts/gates.sh`; rebuild the icons if the mapping changed; `scripts/dev/run.sh` in both modes.
-3. `scripts/build.sh` → `dist/AdwaitaForCalibre-<version>.zip`, attach to a GitHub release.
+1. Bump `version` in `plugin/__init__.py` and `TESTED_WITH` in `plugin/main.py` if a newer calibre
+   was tested; move the CHANGELOG's *Unreleased* entries under the new version.
+2. `scripts/gates.sh`, `scripts/smoke.sh dark` and `scripts/smoke.sh light`; rebuild the icons if
+   the mapping changed.
+3. Merge through a PR, then push the tag `vX.Y.Z` on `main`. `.github/workflows/release.yml`
+   checks the tag against the plugin version, builds the zip, attests its build provenance and
+   creates a **draft** release. Write the notes from the CHANGELOG, then publish.
+
+No SBOM: the zip bundles no third-party code; the bundled GNOME icons are credited in the README.

@@ -1,6 +1,6 @@
 # Adwaita for calibre
 
-Last updated: 2026-11-19 04:31 PM CET
+Last updated: 2026-11-19 07:12 PM CET
 
 [![ci](https://github.com/CR0CKER/adwaita-for-calibre/actions/workflows/ci.yml/badge.svg)](https://github.com/CR0CKER/adwaita-for-calibre/actions/workflows/ci.yml)
 [![License: GPL-3.0](https://img.shields.io/github/license/CR0CKER/adwaita-for-calibre)](LICENSE)
@@ -82,8 +82,10 @@ overrides you set for calibre). For a non-Flatpak calibre, start it with `QT_QPA
 
 ### Uninstall
 
-Restore your previous icons first (Customize plugin → Restore previous icons), then remove the
-plugin in Preferences → Plugins and restart.
+1. Preferences → Plugins → *Adwaita for calibre* → **Customize plugin** → **Restore calibre's
+   look**. This puts back your previous icons, calibre's own colours and the e-book viewer's
+   previous colour scheme (close the viewer first).
+2. Remove the plugin in Preferences → Plugins and restart calibre.
 
 ## Requirements and limits
 

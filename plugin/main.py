@@ -304,6 +304,21 @@ class EventFilter:
         return Filter()
 
 
+# The calibre release the plugin was last tested against. It patches calibre internals, so a newer
+# calibre may have moved something; say so once instead of failing obscurely (audit L5).
+TESTED_WITH = (9, 18)
+
+
+def check_calibre_version():
+    from calibre.constants import numeric_version
+    debug('calibre', '.'.join(map(str, numeric_version)))
+    if tuple(numeric_version[:2]) > TESTED_WITH:
+        import sys
+        print(f'{PREFIX} tested with calibre {TESTED_WITH[0]}.{TESTED_WITH[1]}; running '
+              f'{".".join(map(str, numeric_version))}. If something looks wrong, disable the plugin '
+              'and report it.', file=sys.stderr)
+
+
 def install(theme):
     import calibre.gui2.palette as calibre_palette
     from calibre.gui2 import gprefs
@@ -311,6 +326,7 @@ def install(theme):
 
     global _THEME
     _THEME = theme
+    check_calibre_version()
     app = QApplication.instance()
     pm = app.palette_manager
     if not pm.using_calibre_style:
