@@ -36,7 +36,7 @@ class Shots(InterfaceAction):
             ('layoutmenu', self.layoutmenu), ('scrolled', self.scrolled),
             ('sidebar', self.sidebar), ('perf', self.perf),
             ('edges', self.edges), ('details', self.details), ('toggles', self.toggles),
-            ('sidetoggle', self.sidetoggle), ('slide', self.slide),
+            ('sidetoggle', self.sidetoggle), ('slide', self.slide), ('coverroom', self.coverroom),
             ('reset', self.reset),
             ('menu', self.menu),
             ('menus', self.menus), ('grid', self.grid),
@@ -225,6 +225,25 @@ class Shots(InterfaceAction):
                 step()
             self.later(500, report)
         step()
+
+    def coverroom(self):
+        # The details cover's card shadow must fit inside the cover view: its outermost pixel
+        # rows and columns are pure background (a clipped shadow reaches the edge).
+        from calibre.gui2.book_details import CoverView
+        for cv in self.gui.findChildren(CoverView):
+            if not cv.isVisible():
+                continue
+            img = cv.grab().toImage()
+            w, h = img.width(), img.height()
+            bg = img.pixel(0, 0)
+
+            def off(px, bg=bg):  # more than 3 levels away from the background in any channel
+                return any(abs(((px >> sh) & 255) - ((bg >> sh) & 255)) > 3 for sh in (0, 8, 16))
+            edge = [img.pixel(x, y) for x in range(w) for y in (0, h - 1)]
+            edge += [img.pixel(x, y) for y in range(h) for x in (0, w - 1)]
+            bad = sum(1 for px in edge if off(px))
+            self.check(bad == 0, f'details cover shadow fits its view ({bad} edge pixels not background)')
+        self.next()
 
     def slide(self):
         # Pane slide (plugin/slide.py): an overlay plays the slide while the real layout is

@@ -27,7 +27,8 @@ First release.
 - Raised-bar shadows under the header bar and above the status bar while content is scrolled; the
   book description in the details pane scrolls under a shade below the cover.
 - Status bar with just the book count and selection; Layout popup as a popover.
-- Book covers as libadwaita cards in the grid and the details pane; flat Adwaita bookshelf view.
+- Book covers as libadwaita cards in the grid and the details pane (the details cover always
+  keeps room for its shadow); flat Adwaita bookshelf view.
 - Edit metadata: 20 px format buttons, cover and formats list as cards, single-border comments
   editor, GNOME success/error colours on the sort fields, icon/label spacing.
 - Optional Adwaita symbolic icon set (186 icons, light and dark), installed and restored from the

@@ -121,19 +121,34 @@ def install():
     original_details = CoverView.paintEvent
 
     def details_paint(self, ev):
-        # Same target rectangle calibre computes in CoverView.paintEvent.
+        # Clamp the cover inside the view minus SHADOW_ROOM at paint time. details_layout does
+        # the same, but the view sits in a QSplitter, which resizes it without calling
+        # do_layout; the stale size then filled the new height and the card shadow was clipped
+        # at the view's edges. calibre's paintEvent reads _current_pixmap_size, so set it for
+        # this paint only (the animation keeps driving the real value).
         canvas = self.rect()
-        w, h = self.current_pixmap_size.width(), self.current_pixmap_size.height()
-        x = max(canvas.width() - w, 0) // 2
-        y = max(canvas.height() - h, 0) // 2
-        # The pixmap keeps its aspect ratio inside that rectangle.
-        size = QSize(self.pixmap.size())
-        size.scale(QSize(w, h), Qt.AspectRatioMode.KeepAspectRatio)
-        target = QRect(x + (w - size.width()) // 2, y + (h - size.height()) // 2, size.width(), size.height())
-        p = QPainter(self)
-        paint_card(p, target)
-        p.end()
-        original_details(self, ev)
+        current = QSize(self._current_pixmap_size)
+        avail = QSize(max(1, canvas.width() - 2 * SHADOW_ROOM), max(1, canvas.height() - 2 * SHADOW_ROOM))
+        size = QSize(current)
+        if size.width() > avail.width() or size.height() > avail.height():
+            size.scale(avail, Qt.AspectRatioMode.KeepAspectRatio)
+        self._current_pixmap_size = size
+        try:
+            # Same target rectangle calibre computes in CoverView.paintEvent.
+            w, h = size.width(), size.height()
+            x = max(canvas.width() - w, 0) // 2
+            y = max(canvas.height() - h, 0) // 2
+            # The pixmap keeps its aspect ratio inside that rectangle.
+            psize = QSize(self.pixmap.size())
+            psize.scale(QSize(w, h), Qt.AspectRatioMode.KeepAspectRatio)
+            target = QRect(x + (w - psize.width()) // 2, y + (h - psize.height()) // 2,
+                           psize.width(), psize.height())
+            p = QPainter(self)
+            paint_card(p, target)
+            p.end()
+            original_details(self, ev)
+        finally:
+            self._current_pixmap_size = current
 
     original_layout = CoverView.do_layout
 

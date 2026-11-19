@@ -72,6 +72,10 @@
   grab; that re-enters `relayout`, which `_adwaita_starting` lets through. Any failure finishes
   the overlay, so it can never stay up. Wide layout only; respects calibre's *Disable animations*.
   `ADWAITA_SLIDE_TIMING=1` prints per-frame timings.
+- **Details cover.** The cover view sits in calibre's `QSplitter`, which resizes it without
+  calling `do_layout`, so a size computed for an earlier, larger view survives. `covers.py`
+  therefore clamps the cover to the view minus `SHADOW_ROOM` in `paintEvent` too, or the card
+  shadow is clipped at the view's edges (visible in light mode).
 - **Panes.** `SplitterHandle.COLLAPSED_SIZE = 0`: calibre's 2 px stub for a hidden pane is a strip
   the content cannot scroll under; above the book area it read as a line under the header bar.
 - **Icons.** calibre loads user themes from `<config>/icons-{any,dark,light}.rcc`, built with
@@ -108,7 +112,8 @@ Steps in `scripts/dev/shots/main.py`: `main`, `focus`, `statusbar`, `hover`, `la
 `scrolled`, `sidebar`, `perf` (times grid and window repaints), `edges` (lists widgets at the
 header's edge), `toggles` (hides/shows panes), `menu`, `menus` (every menu), `grid`, `prefs`,
 `metadata`, `news`, `details` (scrolled book description), `sidetoggle` (header-bar sidebar
-toggles), `slide` (pane slide; `SLIDE_MID_MS`, `SLIDE_LIST`), `flip` (live light/dark switch), `views`, `closebtn`, `prefcheck`.
+toggles), `slide` (pane slide; `SLIDE_MID_MS`, `SLIDE_LIST`), `coverroom` (details cover shadow
+not clipped), `flip` (live light/dark switch), `views`, `closebtn`, `prefcheck`.
 
 `run.sh` uses a throwaway profile (`.dev/config`, `.dev/library`) and never touches the real
 calibre profile. Build the library with `calibre-debug -e scripts/dev/mklib.py -- .dev/library`
