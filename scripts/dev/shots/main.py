@@ -273,8 +273,13 @@ class Shots(InterfaceAction):
                 if not os.environ.get('ADWAITA_SLIDE_TIMING'):  # a grab stalls the animation
                     self.save(self.gui, f'slide-{tag}-{state}-mid')
 
-            def end():
-                self.check(getattr(c, '_adwaita_overlay', None) is None, f'{tag} {state}: overlay gone')
+            def end(tries=0):
+                # A screenshot mid-slide stalls the event loop; give the slide up to 2 s to end.
+                gone = getattr(c, '_adwaita_overlay', None) is None
+                if not gone and tries < 15:
+                    self.later(100, lambda: end(tries + 1))
+                    return
+                self.check(gone, f'{tag} {state}: overlay gone')
                 step()
             self.later(int(os.environ.get('SLIDE_MID_MS') or 90), mid)
             self.later(500, end)
@@ -364,15 +369,26 @@ class Shots(InterfaceAction):
         self.next()
 
     def layoutmenu(self):
+        # calibre's Layout popup, opened from the header bar's main menu (its status-bar button
+        # is hidden): it drops from the top right, under the header bar.
         from calibre.gui2.layout_menu import LayoutMenu
+        from qt.core import QToolButton
         m = self.gui.findChild(LayoutMenu)
-        print('LAYOUTMENU found', m is not None, flush=True)
-        if m is None:
+        lb = getattr(self.gui, 'layout_button', None)
+        self.check(lb is not None and not lb.isVisible(), 'status bar Layout button hidden')
+        mb = self.gui.search_bar.findChild(QToolButton, 'adwaita_main_menu')
+        act = next((a for a in mb.menu().actions() if a.text().startswith('Layout')), None) if mb else None
+        self.check(act is not None, 'Layout… in the main menu')
+        if m is None or act is None:
             self.next()
             return
-        m.show()
+        act.trigger()
 
         def done():
+            top = m.inner.mapTo(self.gui, QPoint(0, 0)).y()
+            hb = self.gui.search_bar.mapTo(self.gui, QPoint(0, self.gui.search_bar.height())).y()
+            self.check(m.isVisible() and hb <= top <= hb + 20,
+                       f'Layout popup under the header bar (top {top}, header bottom {hb})')
             self.save(self.gui, 'layoutmenu')
             m.hide()
             self.next()

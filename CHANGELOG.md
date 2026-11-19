@@ -13,6 +13,9 @@ All notable changes to this project are documented here. The format follows
   middle; *Languages* ends where the other fields do; the per-row buttons (clear, list, swap,
   copy) are dimmed until hovered or focused; the sort fields lose their green/red outline and
   show their state as a green check or amber warning icon.
+- The status bar's Layout button is hidden: the header bar's toggles replace it, and its popup
+  (Quickview, search bar, wide/narrow layout) opens from the ☰ main menu, *Layout…*, dropping
+  from the top right.
 - Edit metadata: no lines between the cover, form and comments columns (the splitters stay
   draggable).
 

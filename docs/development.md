@@ -54,7 +54,10 @@
   calibre's own layout buttons (`layout_container.tag_browser_button` / `book_details_button`)
   and follow their `toggled` signal, so calibre's saved visibility stays the only state. The
   cover browser gets the same kind of toggle beside the view switcher: in calibre it is a strip
-  above any view, not a view, so it is on/off rather than a fourth segment.
+  above any view, not a view, so it is on/off rather than a fourth segment. The status bar's
+  Layout button is pinned hidden (`setVisible` overridden on the instance, since calibre
+  re-shows it from Python when layout prefs change); ☰ → *Layout…* opens calibre's
+  `LayoutMenu` and moves its inner card under the header bar at the right.
 - **Toolbars & menus preferences.** Invisible actions (this plugin's, any plugin's) must list
   `searchbar` in `dont_add_to`, or that page crashes on `None.replace`. Its Preferences check
   accepts the main menu while the header bar is merged.
