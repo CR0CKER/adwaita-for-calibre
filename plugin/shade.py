@@ -98,11 +98,12 @@ class ScrollAreaShades(QObject):
     """The same raised-bar shadows for a single scroll area (the tag browser): under the header
     bar once scrolled, above the bottom bar (Configure / Find) while more lies below."""
 
-    def __init__(self, area):
+    def __init__(self, area, bottom=True):
         super().__init__(area)
         self.area = area
         self.top = Shade(area, 'top')
         self.bottom = Shade(area, 'bottom')
+        self.with_bottom = bottom
         sb = area.verticalScrollBar()
         sb.valueChanged.connect(self.update)
         sb.rangeChanged.connect(self.update)
@@ -121,7 +122,7 @@ class ScrollAreaShades(QObject):
             self.top.setGeometry(vp.left(), vp.top(), vp.width(), HEIGHT)
             self.bottom.setGeometry(vp.left(), vp.bottom() - HEIGHT + 1, vp.width(), HEIGHT)
             self.top.setVisible(sb.value() > sb.minimum())
-            self.bottom.setVisible(sb.value() < sb.maximum())
+            self.bottom.setVisible(self.with_bottom and sb.value() < sb.maximum())
             self.top.raise_()
             self.bottom.raise_()
         except RuntimeError:
@@ -133,3 +134,10 @@ def install_sidebar(gui):
     for tv in gui.findChildren(QTreeView):
         if type(tv).__name__ == 'TagsView':
             tv._adwaita_shades = ScrollAreaShades(tv)
+    # Book details text: scrolled text slides under the cover instead of being cut off at it.
+    # No bottom shade: nothing sits below the pane.
+    from calibre.gui2.book_details import BookDetails
+    from qt.core import QTextBrowser
+    for bd in gui.findChildren(BookDetails):
+        for tb in bd.findChildren(QTextBrowser):
+            tb._adwaita_shades = ScrollAreaShades(tb, bottom=False)

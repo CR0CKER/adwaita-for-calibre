@@ -7,10 +7,14 @@ libadwaita 1.8 (GNOME 49), extracted with
 """
 
 import re
+from collections.abc import Iterable, Mapping
+
+RGB = tuple[int, int, int]
+Lab = tuple[float, float, float]
 
 # libadwaita's nine accent colours (`--accent-<name>` in default.css). Used as a fallback when the
 # Settings portal cannot be read, and to name the portal's RGB value in logs.
-ACCENTS = {
+ACCENTS: dict[str, str] = {
     'blue': '#3584e4',
     'teal': '#2190a4',
     'green': '#3a944a',
@@ -24,7 +28,7 @@ ACCENTS = {
 DEFAULT_ACCENT = ACCENTS['blue']  # libadwaita's own default
 
 # Surfaces: (dark, light). Solid colours only; overlays are derived below.
-SURFACES = {
+SURFACES: dict[str, tuple[str, str]] = {
     'window_bg': ('#222226', '#fafafb'),
     'view_bg': ('#1d1d20', '#ffffff'),
     'headerbar_bg': ('#2e2e32', '#ffffff'),
@@ -35,31 +39,31 @@ SURFACES = {
     'thumbnail_bg': ('#39393d', '#ffffff'),
 }
 # Foreground: white in dark mode, rgb(0 0 6 / 80%) in light mode.
-FG = {True: ('#ffffff', 1.0), False: ('#000006', 0.8)}
-SHADE = {True: ('#000006', 0.25), False: ('#000006', 0.07)}
-DESTRUCTIVE = {True: '#c01c28', False: '#e01b24'}  # red_4 / red_3
-WARNING = {True: '#cd9309', False: '#e5a50a'}
-SUCCESS = {True: '#26a269', False: '#2ec27e'}
+FG: dict[bool, tuple[str, float]] = {True: ('#ffffff', 1.0), False: ('#000006', 0.8)}
+SHADE: dict[bool, tuple[str, float]] = {True: ('#000006', 0.25), False: ('#000006', 0.07)}
+DESTRUCTIVE: dict[bool, str] = {True: '#c01c28', False: '#e01b24'}  # red_4 / red_3
+WARNING: dict[bool, str] = {True: '#cd9309', False: '#e5a50a'}
+SUCCESS: dict[bool, str] = {True: '#26a269', False: '#2ec27e'}
 
 
-def parse_hex(c):
+def parse_hex(c: str) -> RGB:
     c = c.lstrip('#')
     if len(c) != 6:
         raise ValueError(f'expected #rrggbb, got #{c}')
-    return tuple(int(c[i:i + 2], 16) for i in (0, 2, 4))
+    return int(c[0:2], 16), int(c[2:4], 16), int(c[4:6], 16)
 
 
-def to_hex(rgb):
+def to_hex(rgb: Iterable[float]) -> str:
     return '#' + ''.join(f'{max(0, min(255, round(v))):02x}' for v in rgb)
 
 
-def mix(fg, bg, alpha):
+def mix(fg: str, bg: str, alpha: float) -> str:
     """Composite `fg` at `alpha` over the solid colour `bg`; returns #rrggbb."""
     f, b = parse_hex(fg), parse_hex(bg)
     return to_hex(tuple(fv * alpha + bv * (1 - alpha) for fv, bv in zip(f, b, strict=True)))
 
 
-def rgba(c, alpha):
+def rgba(c: str, alpha: float) -> str:
     """A QSS rgba() string. Qt reads the alpha channel as 0-255."""
     r, g, b = parse_hex(c)
     return f'rgba({r}, {g}, {b}, {round(alpha * 255)})'
@@ -68,17 +72,17 @@ def rgba(c, alpha):
 # --- OKLab, for libadwaita's standalone accent: oklab(from accent max(l, .85) a b) in dark,
 # min(l, .5) in light. Reference: https://bottosson.github.io/posts/oklab/
 
-def _lin(v):
+def _lin(v: float) -> float:
     v /= 255
     return v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4
 
 
-def _unlin(v):
+def _unlin(v: float) -> float:
     v = v * 12.92 if v <= 0.0031308 else 1.055 * v ** (1 / 2.4) - 0.055
     return v * 255
 
 
-def to_oklab(c):
+def to_oklab(c: str) -> Lab:
     r, g, b = (_lin(v) for v in parse_hex(c))
     l_ = (0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b) ** (1 / 3)
     m_ = (0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b) ** (1 / 3)
@@ -90,7 +94,7 @@ def to_oklab(c):
     )
 
 
-def from_oklab(lab):
+def from_oklab(lab: Lab) -> str:
     L, a, b = lab
     l_ = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3
     m_ = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3
@@ -103,15 +107,17 @@ def from_oklab(lab):
     return to_hex(_unlin(max(0.0, min(1.0, v))) for v in rgb)
 
 
-def standalone_accent(accent_bg, dark):
+def standalone_accent(accent_bg: str, dark: bool) -> str:
     L, a, b = to_oklab(accent_bg)
     L = max(L, 0.85) if dark else min(L, 0.5)
     return from_oklab((L, a, b))
 
 
-def accent_from_portal(rgb_floats):
+def accent_from_portal(rgb_floats: object) -> str | None:
     """The Settings portal reports accent-color as three floats in [0, 1]; values outside that
     range mean "unset"."""
+    if not isinstance(rgb_floats, (list, tuple)):  # QtDBus hands over a list/tuple of floats
+        return None
     try:
         vals = [float(v) for v in rgb_floats]
     except (TypeError, ValueError):
@@ -121,7 +127,7 @@ def accent_from_portal(rgb_floats):
     return to_hex(v * 255 for v in vals)
 
 
-def tokens(dark, accent=DEFAULT_ACCENT):
+def tokens(dark: bool, accent: str = DEFAULT_ACCENT) -> dict[str, str]:
     """Every colour the palette and stylesheet use, as strings."""
     i = 0 if dark else 1
     t = {k: v[i] for k, v in SURFACES.items()}
@@ -134,9 +140,12 @@ def tokens(dark, accent=DEFAULT_ACCENT):
     t['fg_dim'] = mix(fg, win, fg_a * 0.55)
     t['fg_disabled'] = mix(fg, win, fg_a * 0.5)
     t['view_fg'] = mix(fg, t['view_bg'], fg_a)
+    # Side panes (tag browser, book details) share the content colour and are set off from it by
+    # a hairline only, so they read as part of the content rather than of the header bar.
+    t['pane_bg'] = t['view_bg']
 
     # Translucent overlays for QSS (rgba); they composite over whatever surface is underneath.
-    def over(alpha):
+    def over(alpha: float) -> str:
         return rgba(fg, fg_a * alpha)
 
     t['border'] = over(0.15)
@@ -182,11 +191,11 @@ def tokens(dark, accent=DEFAULT_ACCENT):
 _TOKEN = re.compile(r'@([a-z_]+)@')
 
 
-def render(template, values):
+def render(template: str, values: Mapping[str, object]) -> str:
     """Replace @name@ placeholders. QSS is full of braces, so str.format is not usable."""
     missing = set()
 
-    def sub(m):
+    def sub(m: re.Match[str]) -> str:
         k = m.group(1)
         if k not in values:
             missing.add(k)
@@ -199,12 +208,12 @@ def render(template, values):
     return out
 
 
-def recolor_svg(svg, color):
+def recolor_svg(svg: str, color: str) -> str:
     """Symbolic icons ship with one placeholder fill (#222222 / #2e3436 / #2e3434)."""
     return re.sub(r'fill="#(?:222222|2e3436|2e3434|000000|474747|241f31)"', f'fill="{color}"', svg)
 
 
-def parse_font(spec):
+def parse_font(spec: str | None) -> tuple[str, float] | None:
     """'Adwaita Sans 11' -> ('Adwaita Sans', 11.0). GSettings font strings put the size last."""
     parts = (spec or '').strip().rsplit(' ', 1)
     if len(parts) != 2:

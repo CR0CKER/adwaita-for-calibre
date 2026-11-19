@@ -24,6 +24,9 @@ IMAGES = (
     'images/view-list-symbolic.svg',
     'images/view-grid-symbolic.svg',
     'images/accessories-dictionary-symbolic.svg',
+    'images/sidebar-show-symbolic.svg',
+    'images/sidebar-show-right-symbolic.svg',
+    'images/cover-browser-symbolic.svg',
 )
 RADIO_DOT = (
     '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">'
@@ -103,8 +106,8 @@ class Theme:
             'pan-end.svg': ('pan-end-symbolic.svg', t['fg']),
             'pan-end-dim.svg': ('pan-end-symbolic.svg', t['fg_dim']),
             # libadwaita expander: pan-end-symbolic at currentColor 70 %
-            'expander-closed.svg': ('pan-end-symbolic.svg', adwaita.mix(t['fg'], t['sidebar_bg'], 0.7)),
-            'expander-open.svg': ('pan-down-symbolic.svg', adwaita.mix(t['fg'], t['sidebar_bg'], 0.7)),
+            'expander-closed.svg': ('pan-end-symbolic.svg', adwaita.mix(t['fg'], t['pane_bg'], 0.7)),
+            'expander-open.svg': ('pan-down-symbolic.svg', adwaita.mix(t['fg'], t['pane_bg'], 0.7)),
             'check.svg': ('object-select-symbolic.svg', t['accent_fg']),
             'check-fg.svg': ('object-select-symbolic.svg', t['fg']),
             'radio-dot.svg': ('radio-dot.svg', t['accent_fg']),
@@ -115,6 +118,9 @@ class Theme:
             'view-list.svg': ('view-list-symbolic.svg', t['fg']),
             'view-grid.svg': ('view-grid-symbolic.svg', t['fg']),
             'view-bookshelf.svg': ('accessories-dictionary-symbolic.svg', t['fg']),
+            'sidebar-left.svg': ('sidebar-show-symbolic.svg', t['fg']),
+            'sidebar-right.svg': ('sidebar-show-right-symbolic.svg', t['fg']),
+            'cover-browser.svg': ('cover-browser-symbolic.svg', t['fg']),
         }
         for out, (src, color) in files.items():
             data = adwaita.recolor_svg(self.svgs[src], color)
@@ -185,9 +191,12 @@ class Theme:
         img = self.image_dir(dark, t)
         return f'''
             QTreeView {{
-                background-color: {t['sidebar_bg']};
+                background-color: {t['pane_bg']};
                 color: {t['fg']};
                 border: none;
+                /* The panes' 12 px inset (panes.INSET) at the top and left, so the expander arrows
+                 * line up with the Configure button below; 6 px on the right for the counts. */
+                padding: 12px 6px 0 12px;
                 selection-background-color: {t['button_bg']};
                 selection-color: {t['fg']};
             }}
@@ -304,6 +313,21 @@ class EventFilter:
         return Filter()
 
 
+# The calibre release the plugin was last tested against. It patches calibre internals, so a newer
+# calibre may have moved something; say so once instead of failing obscurely (audit L5).
+TESTED_WITH = (9, 18)
+
+
+def check_calibre_version():
+    from calibre.constants import numeric_version
+    debug('calibre', '.'.join(map(str, numeric_version)))
+    if tuple(numeric_version[:2]) > TESTED_WITH:
+        import sys
+        print(f'{PREFIX} tested with calibre {TESTED_WITH[0]}.{TESTED_WITH[1]}; running '
+              f'{".".join(map(str, numeric_version))}. If something looks wrong, disable the plugin '
+              'and report it.', file=sys.stderr)
+
+
 def install(theme):
     import calibre.gui2.palette as calibre_palette
     from calibre.gui2 import gprefs
@@ -311,6 +335,7 @@ def install(theme):
 
     global _THEME
     _THEME = theme
+    check_calibre_version()
     app = QApplication.instance()
     pm = app.palette_manager
     if not pm.using_calibre_style:
@@ -508,8 +533,9 @@ class AdwaitaAction(InterfaceAction):
             return
         try:
             install_toolbar_size(self.gui)
-            from calibre_plugins.adwaita_for_calibre import panes, shade, statusbar
+            from calibre_plugins.adwaita_for_calibre import panes, shade, slide, statusbar
             panes.install(self.gui)
+            slide.install()
             shade.install(self.gui)
             shade.install_sidebar(self.gui)
             statusbar.install(self.gui)

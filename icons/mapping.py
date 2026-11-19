@@ -10,7 +10,7 @@ pictures that carry meaning in colour: format/mimetype icons, device pictures, p
 badges, logos, textures, the default cover and the green/red status dots (see KEEP).
 """
 
-MAPPING = {
+MAPPING: dict[str, str] = {
     'accessibility.png': 'legacy/preferences-desktop-accessibility',
     'add_book.png': 'actions/list-add',
     'ai.png': 'status/starred',
@@ -207,10 +207,10 @@ MAPPING = {
 }
 
 # Coloured on purpose, or nothing in Adwaita fits: these keep calibre's picture.
-KEEP = {
+KEEP: set[str] = {
     'apple-touch-icon.png', 'blank.png', 'calibre.svg', 'default_cover.png', 'dot_green.png',
     'dot_red.png', 'favicon-192.png', 'favicon-512.png', 'gmail_logo.png', 'hotmail.png',
 }
 # Everything else in these folders stays calibre's: per-format book icons, device pictures,
 # plugin-status badges, background textures.
-KEEP_DIRS = ('mimetypes/', 'devices/', 'plugins/', 'textures/')
+KEEP_DIRS: tuple[str, ...] = ('mimetypes/', 'devices/', 'plugins/', 'textures/')

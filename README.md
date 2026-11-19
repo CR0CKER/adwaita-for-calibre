@@ -1,6 +1,6 @@
 # Adwaita for calibre
 
-Last updated: 2026-11-19 04:31 PM CET
+Last updated: 2026-11-19 07:12 PM CET
 
 [![ci](https://github.com/CR0CKER/adwaita-for-calibre/actions/workflows/ci.yml/badge.svg)](https://github.com/CR0CKER/adwaita-for-calibre/actions/workflows/ci.yml)
 [![License: GPL-3.0](https://img.shields.io/github/license/CR0CKER/adwaita-for-calibre)](LICENSE)
@@ -20,7 +20,9 @@ changes when you change it). The GNOME interface font is used unless you set one
 
 **One header bar.** The toolbar and the search row become a single GNOME header bar: your actions
 on the left, a centred search field with Virtual library and saved searches, a List · Grid ·
-Bookshelf view switcher, and a ☰ main menu (Preferences, all actions, Help, Restart). Split
+Bookshelf view switcher with a cover-browser toggle beside it, and a ☰ main menu (Preferences, all actions, Help, Restart). Sidebar
+toggles at either end show and hide the tag browser and the book details pane, which slide in
+and out (Shift+Alt+T and Shift+Alt+D do the same). Split
 buttons look like GNOME's split buttons, "Small" toolbar icons are GNOME's 16 px, and
 Preferences can be removed from the toolbar since it lives in the main menu.
 
@@ -28,8 +30,8 @@ Preferences can be removed from the toolbar since it lives in the main menu.
 check boxes, radio buttons, menus and popovers with libadwaita's outline and shadow, view-switcher
 tabs, overlay scroll bars that fade out, flat column headers, cards for group boxes.
 
-**A three-pane layout.** The tag browser and the book details pane are GNOME sidebars around the
-book area, separated by hairlines instead of splitter grips. The tag browser gets rounded rows,
+**A three-pane layout.** The tag browser and the book details pane share the book area's colour
+and are set off from it by hairlines instead of splitter grips. The tag browser gets rounded rows,
 GNOME expanders and an action bar for Configure / Find. Shadows appear under the header bar and
 above the status bar only while content is scrolled beneath them. The status bar shows just the
 book count and selection.
@@ -82,8 +84,10 @@ overrides you set for calibre). For a non-Flatpak calibre, start it with `QT_QPA
 
 ### Uninstall
 
-Restore your previous icons first (Customize plugin → Restore previous icons), then remove the
-plugin in Preferences → Plugins and restart.
+1. Preferences → Plugins → *Adwaita for calibre* → **Customize plugin** → **Restore calibre's
+   look**. This puts back your previous icons, calibre's own colours and the e-book viewer's
+   previous colour scheme (close the viewer first).
+2. Remove the plugin in Preferences → Plugins and restart calibre.
 
 ## Requirements and limits
 
@@ -99,6 +103,8 @@ plugin in Preferences → Plugins and restart.
 - The e-book viewer's in-page scroll bar keeps calibre's look: the viewer's page files cannot be
   overridden. It can be switched off in the viewer's Preferences → Scrolling behavior.
 - The book editor and other separate calibre programs keep calibre's look.
+- calibre's *Toggle search bar* shortcut (Shift+Alt+F) hides the whole header bar, since the
+  header bar is calibre's search bar; press it again to bring it back.
 
 ## Troubleshooting
 
@@ -130,7 +136,8 @@ GPL-3.0, see [LICENSE](LICENSE). The icon set and indicator images are GNOME's A
 icons from adwaita-icon-theme 49.0 (LGPL-3.0-only or CC-BY-SA-3.0, GNOME Project), recoloured;
 the search field's cog is GNOME Settings' symbolic icon (gnome-control-center 49, CC0-1.0); nine
 symbols GNOME has no icon for (books, tag, ++, −−, text colour, superscript, subscript, heading,
-horizontal rule) were drawn for this plugin in the same style (GPL-3.0). Colour values are taken
+horizontal rule) and the cover-browser toggle's icon were drawn for this plugin in the same style
+(GPL-3.0). Colour values are taken
 from libadwaita (LGPL-2.1-or-later).
 
 GNOME is a trademark of the GNOME Foundation. This plugin is designed for use with GNOME but is

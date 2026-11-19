@@ -16,6 +16,14 @@ class Shots(InterfaceAction):
         'toolbar', 'toolbar-device', 'toolbar-child', 'menubar', 'menubar-device', 'searchbar',
     ))
 
+    failures: list = []
+
+    def check(self, ok, what):
+        """Smoke assertion: printed, and remembered so the run exits non-zero (scripts/smoke.sh)."""
+        print(f'SMOKE {"ok  " if ok else "FAIL"} {what}', flush=True)
+        if not ok:
+            self.failures.append(what)
+
     def genesis(self):
         self.dir = os.environ.get('ADWAITA_SHOT_DIR')
         if not self.dir:
@@ -27,7 +35,10 @@ class Shots(InterfaceAction):
             ('main', self.main), ('focus', self.focus), ('statusbar', self.statusbar), ('hover', self.hover),
             ('layoutmenu', self.layoutmenu), ('scrolled', self.scrolled),
             ('sidebar', self.sidebar), ('perf', self.perf),
-            ('edges', self.edges), ('toggles', self.toggles),
+            ('edges', self.edges), ('details', self.details), ('toggles', self.toggles),
+            ('sidetoggle', self.sidetoggle), ('covertoggle', self.covertoggle), ('slide', self.slide),
+            ('coverroom', self.coverroom),
+            ('reset', self.reset),
             ('menu', self.menu),
             ('menus', self.menus), ('grid', self.grid),
             ('prefs', self.prefs), ('metadata', self.metadata), ('news', self.news),
@@ -79,6 +90,22 @@ class Shots(InterfaceAction):
                                      self.next()))
         self.later(800, go)
 
+    def details(self):
+        # Book details with a long description, scrolled: text padding and the top shade.
+        from calibre.gui2.book_details import BookDetails
+        from qt.core import QTextBrowser
+        bd = self.gui.findChild(BookDetails)
+        tb = bd.findChild(QTextBrowser)
+        tb.setHtml('<p>' + ' '.join(['A long description that needs to scroll.'] * 120) + '</p>')
+
+        def shoot():
+            sb = tb.verticalScrollBar()
+            sb.setValue(sb.maximum() // 3)
+            self.later(300, lambda: (print('DETAILS shade', tb._adwaita_shades.top.isVisible(),
+                                           flush=True),
+                                     self.save(self.gui, 'details'), self.next()))
+        self.later(500, shoot)
+
     def sidebar(self):
         # Expand everything in the tag browser so it scrolls, then scroll it a little.
         tv = self.gui.tags_view
@@ -112,8 +139,11 @@ class Shots(InterfaceAction):
                     w.repaint()
                 ms = (time.perf_counter() - st) * 1000 / n
                 print(f'PERF {label}: {ms:.1f} ms/frame', flush=True)
+                return ms
 
-            t('grid viewport, card shadow on', vp)
+            budget = float(os.environ.get('SMOKE_FRAME_BUDGET_MS', '30'))
+            ms = t('grid viewport, card shadow on', vp)
+            self.check(ms <= budget, f'grid repaint {ms:.1f} ms <= {budget:.0f} ms budget')
             patched = CoverDelegate.paint_cover
             try:
                 from calibre_plugins.adwaita_for_calibre import covers
@@ -152,21 +182,141 @@ class Shots(InterfaceAction):
         hb = self.gui.search_bar
         y = hb.mapTo(self.gui, QPoint(0, hb.height())).y()
         print('EDGE header bottom at y =', y, flush=True)
+        stack = self.gui.library_view.alternate_views.stack
+        stack_top = stack.mapTo(self.gui, QPoint(0, 0)).y()
+        self.check(stack_top == y,
+                   f'book area starts at the header bar (stack top {stack_top}, header bottom {y})')
         for w in self.gui.findChildren(QWidget):
             if not w.isVisible() or w.isWindow():
                 continue
             top = w.mapTo(self.gui, QPoint(0, 0)).y()
             bottom = top + w.height()
+            if 0 < w.height() <= 4 and abs(top - y) <= 1 and w.width() > 40:
+                self.check(False, f'no thin strip under the header bar ({type(w).__name__} h={w.height()})')
             if abs(top - y) <= 3 or abs(bottom - y) <= 3 or (w.height() <= 4 and abs(top - y) <= 12):
                 print('EDGE', type(w).__name__, w.objectName(), 'top', top, 'h', w.height(), 'w', w.width(),
                       'ss' if w.styleSheet() else '', flush=True)
         self.next()
+
+    def sidetoggle(self):
+        # The header bar's sidebar toggles: they follow the panes and hide/show them on click.
+        from qt.core import QToolButton
+        toggles = self.gui.search_bar.findChildren(QToolButton, 'adwaita_sidebar_toggle')
+        self.check(len(toggles) == 2, f'two sidebar toggles in the header bar (found {len(toggles)})')
+        stack = self.gui.library_view.alternate_views.stack
+        seq = [b for b in toggles for _ in (0, 1)]  # each clicked twice: hide, show
+
+        def step():
+            if not seq:
+                self.next()
+                return
+            b = seq.pop(0)
+            before = stack.geometry().width()
+            b.click()
+
+            def report():
+                t = b._adwaita_target
+                self.check(b.isChecked() == t.isChecked(), f'{t.label} toggle follows the pane')
+                after = stack.geometry().width()
+                if t.isChecked():
+                    self.check(after < before, f'{t.label} toggle shows the pane ({before} -> {after})')
+                else:
+                    self.check(after > before, f'{t.label} toggle hides the pane ({before} -> {after})')
+                    self.save(self.gui, f'sidetoggle-{t.name}')
+                step()
+            self.later(500, report)
+        step()
+
+    def coverroom(self):
+        # The details cover's card shadow must fit inside the cover view: its outermost pixel
+        # rows and columns are pure background (a clipped shadow reaches the edge).
+        from calibre.gui2.book_details import CoverView
+        for cv in self.gui.findChildren(CoverView):
+            if not cv.isVisible():
+                continue
+            img = cv.grab().toImage()
+            w, h = img.width(), img.height()
+            bg = img.pixel(0, 0)
+
+            def off(px, bg=bg):  # more than 3 levels away from the background in any channel
+                return any(abs(((px >> sh) & 255) - ((bg >> sh) & 255)) > 3 for sh in (0, 8, 16))
+            edge = [img.pixel(x, y) for x in range(w) for y in (0, h - 1)]
+            edge += [img.pixel(x, y) for y in range(h) for x in (0, w - 1)]
+            bad = sum(1 for px in edge if off(px))
+            self.check(bad == 0, f'details cover shadow fits its view ({bad} edge pixels not background)')
+        self.next()
+
+    def slide(self):
+        # Pane slide (plugin/slide.py): an overlay plays the slide while the real layout is
+        # already final; then it goes away and the real widgets show the end state.
+        c = self.gui.layout_container
+        stack = self.gui.library_view.alternate_views.stack
+        if os.environ.get('SLIDE_LIST'):
+            self.gui.grid_view_button.setChecked(False)
+        start_w = stack.geometry().width()
+        seq = [('tag_browser_button', 'tb'), ('tag_browser_button', 'tb'),
+               ('book_details_button', 'bd'), ('book_details_button', 'bd')]
+
+        def step():
+            if not seq:
+                self.check(stack.geometry().width() == start_w, 'book area back to its width')
+                self.next()
+                return
+            attr, tag = seq.pop(0)
+            btn = getattr(c, attr)
+            btn.click()
+            state = 'open' if btn.isChecked() else 'close'
+
+            def mid():
+                ov = getattr(c, '_adwaita_overlay', None)
+                self.check(ov is not None and ov.isVisible(), f'{tag} {state}: slide overlay playing')
+                if not os.environ.get('ADWAITA_SLIDE_TIMING'):  # a grab stalls the animation
+                    self.save(self.gui, f'slide-{tag}-{state}-mid')
+
+            def end():
+                self.check(getattr(c, '_adwaita_overlay', None) is None, f'{tag} {state}: overlay gone')
+                step()
+            self.later(int(os.environ.get('SLIDE_MID_MS') or 90), mid)
+            self.later(500, end)
+        step()
+
+    def covertoggle(self):
+        # The header bar's cover-browser toggle follows calibre's button and shows/hides the strip.
+        from qt.core import QToolButton
+        b = self.gui.search_bar.findChild(QToolButton, 'adwaita_cover_toggle')
+        self.check(b is not None, 'cover browser toggle in the header bar')
+        if b is None:
+            self.next()
+            return
+        cb = self.gui.layout_container.cover_browser
+        start = b.isChecked()
+        b.click()
+
+        def after_first():
+            self.check(b.isChecked() != start and b.isChecked() == b._adwaita_target.isChecked(),
+                       'cover browser toggle follows the strip')
+            shown = 'shown' if b.isChecked() else 'hidden'
+            self.check(cb.isVisible() == b.isChecked(), f'cover browser {shown}')
+            if b.isChecked():
+                from calibre_plugins.adwaita_for_calibre import panes
+                from qt.core import QWidget
+                pad = self.gui.layout_container.findChild(QWidget, 'adwaita_cover_browser_pad')
+                self.check(cb.y() == panes.COVER_BROWSER_GAP and pad is not None and pad.isVisible()
+                           and pad.y() == 0 and pad.height() == cb.y(),
+                           f'cover browser padded {panes.COVER_BROWSER_GAP}px at the top (black pad)')
+                self.save(self.gui, 'covertoggle-on')
+            b.click()
+            self.later(500, lambda: (self.check(b.isChecked() == start and cb.isVisible() == start,
+                                                'cover browser back to its state'), self.next()))
+        self.later(700, after_first)
 
     def toggles(self):
         # Hide and re-show panes through calibre's own layout buttons; report geometry.
         buttons = {b.label: b for b in getattr(self.gui, 'layout_buttons', [])}
         names = [n for n in ('Tag browser', 'Book details', 'Cover browser') if n in buttons]
         seq = [(n, v) for n in names for v in (not buttons[n].isChecked(), buttons[n].isChecked())]
+        # Baseline width of the book area before any pane is toggled.
+        self._toggle_base = self.gui.library_view.alternate_views.stack.geometry().width()
 
         def step():
             if not seq:
@@ -178,9 +328,40 @@ class Shots(InterfaceAction):
                 b.click()
             stack = self.gui.library_view.alternate_views.stack
             state = 'visible' if visible else 'hidden'
-            self.later(500, lambda: (print('TOGGLE', name, state, 'stack', stack.geometry(), flush=True),
-                                     step()))
+
+            def report():
+                g = stack.geometry()
+                print('TOGGLE', name, state, 'stack', g, flush=True)
+                if name in ('Tag browser', 'Book details'):
+                    base = self._toggle_base
+                    if visible:
+                        self.check(g.width() == base, f'{name} shown again: book area back to {base}px')
+                    else:
+                        self.check(g.width() > base, f'{name} hidden: book area wider ({g.width()} > {base})')
+                step()
+            self.later(500, report)
         step()
+
+    def reset(self):
+        # M4/L4: sync the viewer settings, then undo them as the Restore button does.
+        from calibre.gui2 import gprefs
+        from calibre.gui2.viewer.config import vprefs
+        from calibre_plugins.adwaita_for_calibre import main as amain
+        from calibre_plugins.adwaita_for_calibre import viewer
+        prefs = amain.prefs()
+
+        def state(label):
+            print('RESET', label, 'names', gprefs['dark_palette_name'], gprefs['light_palette_name'],
+                  'keys', sorted(gprefs['dark_palettes'] or {}), 'scheme',
+                  (vprefs['session_data'] or {}).get('current_color_scheme'),
+                  'flag', prefs['viewer_scheme_set'], flush=True)
+        print('RESET viewer_running', viewer.viewer_running(), flush=True)
+        state('before')
+        viewer.sync(amain._THEME, prefs)
+        state('synced')
+        print('RESET unsync returned', viewer.unsync(prefs), flush=True)
+        state('restored')
+        self.next()
 
     def layoutmenu(self):
         from calibre.gui2.layout_menu import LayoutMenu
@@ -382,8 +563,13 @@ class Shots(InterfaceAction):
                 sw = self.gui.findChild(QFrame, 'adwaita_view_switcher')
                 print(f'VIEWS {kind} {key}: shown={current()} switcher={which()} '
                       f'search_w={self.gui.search.width()} switcher_x={sw.x()}', flush=True)
-                if kind == 'click' and key == 'grid' and not seq[1:2] == []:
-                    pass
+                self.check(current() == which(), f'view switcher follows {kind} {key} (shown {current()})')
+                pos = (self.gui.search.width(), sw.x())
+                first = getattr(self, '_views_pos', None)
+                if first is None:
+                    self._views_pos = pos
+                else:
+                    self.check(pos == first, f'header bar does not move on {kind} {key}')
                 self.save(self.gui, f'views-{len(seq)}')
                 step()
             self.later(700, report)
@@ -406,8 +592,9 @@ class Shots(InterfaceAction):
         try:
             w.commit()
             print('PREFCHECK saved without Preferences in toolbar/menubar', flush=True)
+            self.check(True, 'toolbar saves without Preferences (it is in the main menu)')
         except AbortCommit:
-            print('PREFCHECK refused', flush=True)
+            self.check(False, 'toolbar saves without Preferences (it is in the main menu)')
         self.later(300, self.next)
 
     def closebtn(self):
@@ -420,4 +607,7 @@ class Shots(InterfaceAction):
         self.later(8000, lambda: (print('CLOSEBTN still running', flush=True), self.next()))
 
     def quit(self):
-        QApplication.instance().exit(0)
+        if os.environ.get('ADWAITA_SMOKE'):
+            print(f'SMOKE {"OK" if not self.failures else "FAILED"} '
+                  f'({len(self.failures)} failure{"s" if len(self.failures) != 1 else ""})', flush=True)
+        QApplication.instance().exit(1 if self.failures else 0)
