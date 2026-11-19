@@ -49,7 +49,9 @@
   keep their space when hidden (`setRetainSizeWhenHidden`), so switching views never moves
   anything. The view switcher drives calibre's own grid/bookshelf toggle buttons and follows
   `alternate_views.stack.currentChanged`; calibre switches the stack page *before* updating
-  `current_view`, so map the stack index through `stack_positions`.
+  `current_view`, so map the stack index through `stack_positions`. The sidebar toggles click
+  calibre's own layout buttons (`layout_container.tag_browser_button` / `book_details_button`)
+  and follow their `toggled` signal, so calibre's saved visibility stays the only state.
 - **Toolbars & menus preferences.** Invisible actions (this plugin's, any plugin's) must list
   `searchbar` in `dont_add_to`, or that page crashes on `None.replace`. Its Preferences check
   accepts the main menu while the header bar is merged.
@@ -96,7 +98,8 @@ ONLY=main,menu WIDTH=1450 scripts/dev/run.sh x dark
 Steps in `scripts/dev/shots/main.py`: `main`, `focus`, `statusbar`, `hover`, `layoutmenu`,
 `scrolled`, `sidebar`, `perf` (times grid and window repaints), `edges` (lists widgets at the
 header's edge), `toggles` (hides/shows panes), `menu`, `menus` (every menu), `grid`, `prefs`,
-`metadata`, `news`, `details` (scrolled book description), `flip` (live light/dark switch), `views`, `closebtn`, `prefcheck`.
+`metadata`, `news`, `details` (scrolled book description), `sidetoggle` (header-bar sidebar
+toggles), `flip` (live light/dark switch), `views`, `closebtn`, `prefcheck`.
 
 `run.sh` uses a throwaway profile (`.dev/config`, `.dev/library`) and never touches the real
 calibre profile. Build the library with `calibre-debug -e scripts/dev/mklib.py -- .dev/library`
@@ -109,7 +112,8 @@ the dev instance runs with `flatpak run --unshare=network`. A fresh profile also
 **Smoke gate** (`scripts/smoke.sh`). CI cannot run calibre, so the Qt layer is checked locally:
 the harness steps `views`, `toggles`, `prefcheck`, `edges` and `perf` assert behaviour (`SMOKE ok`
 / `SMOKE FAIL` lines; the run exits non-zero on any failure): the view switcher follows clicks and
-shortcuts and the header bar does not move, hidden panes free their space and come back, the
+shortcuts and the header bar does not move, hidden panes free their space and come back (also
+through the header bar's sidebar toggles, which must follow the panes), the
 toolbar saves without Preferences, the book area starts right under the header bar with no strip
 in between, and a grid repaint stays within `SMOKE_FRAME_BUDGET_MS` (default 30). Run it before
 every release and after touching the Qt modules.

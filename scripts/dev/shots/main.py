@@ -36,6 +36,7 @@ class Shots(InterfaceAction):
             ('layoutmenu', self.layoutmenu), ('scrolled', self.scrolled),
             ('sidebar', self.sidebar), ('perf', self.perf),
             ('edges', self.edges), ('details', self.details), ('toggles', self.toggles),
+            ('sidetoggle', self.sidetoggle),
             ('reset', self.reset),
             ('menu', self.menu),
             ('menus', self.menus), ('grid', self.grid),
@@ -195,6 +196,35 @@ class Shots(InterfaceAction):
                 print('EDGE', type(w).__name__, w.objectName(), 'top', top, 'h', w.height(), 'w', w.width(),
                       'ss' if w.styleSheet() else '', flush=True)
         self.next()
+
+    def sidetoggle(self):
+        # The header bar's sidebar toggles: they follow the panes and hide/show them on click.
+        from qt.core import QToolButton
+        toggles = self.gui.search_bar.findChildren(QToolButton, 'adwaita_sidebar_toggle')
+        self.check(len(toggles) == 2, f'two sidebar toggles in the header bar (found {len(toggles)})')
+        stack = self.gui.library_view.alternate_views.stack
+        seq = [b for b in toggles for _ in (0, 1)]  # each clicked twice: hide, show
+
+        def step():
+            if not seq:
+                self.next()
+                return
+            b = seq.pop(0)
+            before = stack.geometry().width()
+            b.click()
+
+            def report():
+                t = b._adwaita_target
+                self.check(b.isChecked() == t.isChecked(), f'{t.label} toggle follows the pane')
+                after = stack.geometry().width()
+                if t.isChecked():
+                    self.check(after < before, f'{t.label} toggle shows the pane ({before} -> {after})')
+                else:
+                    self.check(after > before, f'{t.label} toggle hides the pane ({before} -> {after})')
+                    self.save(self.gui, f'sidetoggle-{t.name}')
+                step()
+            self.later(500, report)
+        step()
 
     def toggles(self):
         # Hide and re-show panes through calibre's own layout buttons; report geometry.

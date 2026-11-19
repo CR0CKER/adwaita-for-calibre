@@ -35,6 +35,12 @@ def merge(gui, image_dir):
     sep.setObjectName('adwaita_headerbar_gap')
     sep.setFixedWidth(12)
     lay.insertWidget(len(bm.main_bars), sep)
+    # GNOME's sidebar toggle at the start of the header bar: the tag browser.
+    left = sidebar_toggle(gui, sb, 'tag_browser_button', 'sidebar-left.svg')
+    first_bar = len(bm.main_bars) + 1  # index of the stretch inserted below
+    if left is not None:
+        lay.insertWidget(0, left)
+        first_bar += 1
 
     # 2. Icon-only buttons in the row, like a header bar (tooltips keep the labels).
     for b in sb.findChildren(QToolButton):
@@ -67,7 +73,7 @@ def merge(gui, image_dir):
                 after = lay.indexOf(search) + 1 + _moved(sb)
                 lay.insertWidget(after, w)
                 sb._adwaita_moved = _moved(sb) + 1
-    lay.insertStretch(len(bm.main_bars) + 1, 1)  # after the toolbars and the gap
+    lay.insertStretch(first_bar, 1)  # after the toggle, the toolbars and the gap
     switcher = view_switcher(gui, sb, image_dir)
     if switcher is not None:
         lay.addSpacing(6)
@@ -112,6 +118,10 @@ def merge(gui, image_dir):
             menu.addAction(qa)
     btn.setMenu(menu)
     btn.setStyleSheet('QToolButton::menu-indicator { image: none; width: 0; }')
+    # ... preceded by the toggle for the right-hand sidebar: book details.
+    right = sidebar_toggle(gui, sb, 'book_details_button', 'sidebar-right.svg')
+    if right is not None:
+        lay.addWidget(right)
     lay.addWidget(btn)
 
     lay.setContentsMargins(8, 6, 8, 6)
@@ -121,6 +131,42 @@ def merge(gui, image_dir):
     bm.update_bars()
     debug('header bar merged')
     return True
+
+
+def sidebar_toggle(gui, parent, attr, icon):
+    """A header-bar toggle for one side pane (libadwaita: a flat toggle button with
+    sidebar-show-symbolic). It clicks calibre's own layout button, so the pane state, its saved
+    visibility, the Layout popup and the Shift+Alt shortcuts all stay the single source of truth;
+    the toggle follows that button."""
+    container = getattr(gui, 'layout_container', None)
+    target = getattr(container, attr, None)
+    if target is None:
+        debug('no layout button', attr)
+        return None
+    b = QToolButton(parent)
+    b.setObjectName('adwaita_sidebar_toggle')
+    b._adwaita_target = target
+    b.setCheckable(True)
+    b.setAutoRaise(True)
+    tracked_icon(b, icon)
+
+    def sync(*args):
+        b.blockSignals(True)
+        b.setChecked(target.isChecked())
+        b.blockSignals(False)
+        tip = f'{"Hide" if target.isChecked() else "Show"} {target.label}'
+        sc = getattr(target, 'shortcut', None)
+        b.setToolTip(f'{tip} ({sc})' if sc else tip)
+
+    def clicked(checked):
+        if target.isChecked() != checked:
+            target.click()
+        sync()
+
+    b.clicked.connect(clicked)
+    target.toggled.connect(sync)
+    sync()
+    return b
 
 
 # (calibre view key, calibre button attribute, icon file, tooltip)
