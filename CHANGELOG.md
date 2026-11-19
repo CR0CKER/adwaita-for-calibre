@@ -30,5 +30,8 @@
   detection, Wayland skipped.
 - Three-pane layout as libadwaita: book details as a sidebar like the tag browser, 1 px sidebar
   borders instead of splitter grips, 12 px insets in the details pane.
+- Edit metadata: 20 px format buttons, cover as a card, formats list as a card, single-border
+  comments editor, GNOME success/error colours on the sort fields, icon/label spacing.
+- Tag browser scroll shadows (header bar / Configure-Find), like the book area.
 - Book covers as libadwaita cards (soft shadow + hairline) in the grid and details panel.
 - E-book viewer: Adwaita palettes and its "System" reading colour scheme (opt-out in Customize).

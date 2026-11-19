@@ -117,6 +117,19 @@ BookDetails QTextBrowser {
     background-color: @sidebar_bg@;
 }
 
+/* Edit metadata: the formats list as a card; the comments editor sits inside its group card
+ * already, so no second border around the text. */
+FormatList {
+    background-color: @view_bg@;
+    border: 1px solid @border@;
+    border-radius: 9px;
+}
+
+QGroupBox QTextEdit[readOnly="false"] {
+    border: none;
+    border-radius: 6px;
+}
+
 /* Book details as the right-hand sidebar (panes.py): no inner cover/text divider line. */
 BookDetails::handle,
 BookDetails::handle:horizontal,
