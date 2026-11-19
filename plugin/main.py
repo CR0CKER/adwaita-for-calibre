@@ -188,8 +188,9 @@ class Theme:
                 background-color: {t['pane_bg']};
                 color: {t['fg']};
                 border: none;
-                /* Same 12 px top inset as the book details pane (panes.INSET). */
-                padding-top: 12px;
+                /* The panes' 12 px inset (panes.INSET) at the top and left, so the expander arrows
+                 * line up with the Configure button below; 6 px on the right for the counts. */
+                padding: 12px 6px 0 12px;
                 selection-background-color: {t['button_bg']};
                 selection-color: {t['fg']};
             }}
