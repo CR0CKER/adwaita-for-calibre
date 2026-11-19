@@ -11,19 +11,15 @@ from qt.core import QColor, QEvent, QLinearGradient, QObject, QPainter, Qt, QWid
 
 # libadwaita's exact undershoot (1 px line + 4 px gradient at ~19 %) is all but invisible over
 # calibre's dark book list, so the same shape is drawn deeper and stronger.
-HEIGHT = 14
+HEIGHT = 12
 
 
-def _peak():
-    """Shadow opacity at the bar's edge."""
+def _alphas():
+    """(edge line, gradient start) opacities."""
     from qt.core import QApplication
     dark = QApplication.instance().palette_manager.is_dark_theme
-    return 0.22 if dark else 0.06
-
-
-# Eased falloff (1 - t)^2.5: a linear gradient starts at full strength, and that hard step at the
-# bar's edge read as a line even without one being drawn.
-FALLOFF = [(i / 8, (1 - i / 8) ** 2.5) for i in range(9)]
+    # Light: close to libadwaita (headerbar shade 12 % at 50 %); a dark edge line on white is harsh.
+    return (0.60, 0.45) if dark else (0.08, 0.10)
 
 
 class Shade(QWidget):
@@ -35,14 +31,15 @@ class Shade(QWidget):
         self.hide()
 
     def paintEvent(self, ev):
-        a = _peak()
+        _, a = _alphas()
         p = QPainter(self)
         w, h = self.width(), self.height()
         g = QLinearGradient(0, 0, 0, h) if self.edge == 'top' else QLinearGradient(0, h, 0, 0)
-        for pos, k in FALLOFF:
-            c = QColor(0, 0, 6)
-            c.setAlphaF(a * k)
-            g.setColorAt(pos, c)
+        c0, c1 = QColor(0, 0, 6), QColor(0, 0, 6)
+        c0.setAlphaF(a)
+        c1.setAlphaF(0)
+        g.setColorAt(0, c0)
+        g.setColorAt(1, c1)
         p.fillRect(0, 0, w, h, g)
         # No 1 px edge line: tried (libadwaita draws one), Nils preferred the shadow alone.
         p.end()
