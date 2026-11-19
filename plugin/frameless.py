@@ -22,6 +22,7 @@ from qt.core import (
     QPainter,
     QPainterPath,
     QPointF,
+    QRect,
     QRectF,
     QSize,
     Qt,
@@ -140,16 +141,37 @@ class Frame(QObject):
             path.addRoundedRect(rect.adjusted(-i, -i + 2, i, i + 2), r + i, r + i)
             p.fillPath(path, c)
 
-    def paint(self):
+    def background(self):
+        """Shadow + rounded window background, rendered once per size/mode/state. The window is
+        translucent, so every repaint inside it (a scrolling cover grid included) repaints this
+        background under the dirty region; drawing the shadow rings each time cost ~20 ms/frame."""
+        from qt.core import QPixmap
         t = tokens_for(self.gui)
+        dpr = self.gui.devicePixelRatioF()
+        key = (self.gui.width(), self.gui.height(), round(dpr * 100), self.tight(), self.margin,
+               t['window_bg'])
+        if getattr(self, '_bg_key', None) != key:
+            pm = QPixmap(round(self.gui.width() * dpr), round(self.gui.height() * dpr))
+            pm.setDevicePixelRatio(dpr)
+            pm.fill(Qt.GlobalColor.transparent)
+            p = QPainter(pm)
+            p.setRenderHint(QPainter.RenderHint.Antialiasing)
+            r = 0 if self.tight() else RADIUS
+            if self.margin:
+                self.draw_shadow(p)
+            path = QPainterPath()
+            path.addRoundedRect(self.content_rect(), r, r)
+            p.fillPath(path, QColor(t['window_bg']))
+            p.end()
+            self._bg, self._bg_key = pm, key
+        return self._bg
+
+    def paint(self, region=None):
+        bg = self.background()
         p = QPainter(self.gui)
-        p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        r = 0 if self.tight() else RADIUS
-        if self.margin:
-            self.draw_shadow(p)
-        path = QPainterPath()
-        path.addRoundedRect(self.content_rect(), r, r)
-        p.fillPath(path, QColor(t['window_bg']))
+        if region is not None:
+            p.setClipRegion(region)
+        p.drawPixmap(0, 0, bg)
         p.end()
 
     def paint_corners(self, widget):
@@ -219,7 +241,7 @@ class Frame(QObject):
             return False
         if obj is self.gui:
             if t == QEvent.Type.Paint:
-                self.paint()
+                self.paint(ev.region())
             elif t in (QEvent.Type.WindowStateChange, QEvent.Type.Show):
                 self.update_margins()
             elif t == QEvent.Type.Resize:
@@ -284,8 +306,18 @@ class Corners(QWidget):
         self.setGeometry(gui.rect())
 
     def paintEvent(self, ev):
+        # This overlay covers the whole window, so it is asked to repaint whenever anything under
+        # it does; only the four corners matter.
         try:
-            self.frame.paint_corners(self)
+            f = self.frame
+            if f.tight() or not f.margin:
+                return
+            rect, r = f.content_rect().toAlignedRect(), RADIUS + 1
+            corners = (QRect(rect.left(), rect.top(), r, r), QRect(rect.right() - r, rect.top(), r + 1, r),
+                       QRect(rect.left(), rect.bottom() - r, r, r + 1),
+                       QRect(rect.right() - r, rect.bottom() - r, r + 1, r + 1))
+            if any(ev.region().intersects(c) for c in corners):
+                f.paint_corners(self)
         except RuntimeError:
             pass
 

@@ -10,6 +10,8 @@ follow calibre's cover corner radius setting.
 
 from qt.core import QColor, QPainter, QPainterPath, QRect, QRectF, QSize, Qt
 
+_ORIG_COVER = None
+
 # Room around the details-panel cover for the shadow: spread + offset + blur of the wider layer.
 SHADOW_ROOM = 10
 
@@ -37,10 +39,16 @@ def _rounded(rect, grow=0.0):
     return path
 
 
-def paint_card(painter, rect):
-    if rect.width() < 4 or rect.height() < 4:
-        return
-    painter.save()
+# The shadow is costly to draw (about 20 anti-aliased path rings); scrolling the grid repainted
+# it for every cover in every frame and more than doubled the paint time. Render it once per
+# cover size, mode and corner setting into a pixmap and stamp that.
+PAD = 12  # room around the cover inside the cached pixmap: spread + offset + blur
+EDGE_RADIUS = 16  # covers the largest usual corner radius; the strips must include the rounding
+_CACHE = {}
+_CACHE_MAX = 64
+
+
+def _draw_card(painter, rect):
     painter.setRenderHint(QPainter.RenderHint.Antialiasing)
     cover = _rounded(rect)
     for spread, dy, blur, alpha in LAYERS:
@@ -56,7 +64,42 @@ def paint_card(painter, rect):
     edge = QColor(255, 255, 255) if _dark() else QColor(0, 0, 6)
     edge.setAlphaF(0.08 if _dark() else 0.06)
     painter.fillPath(hair, edge)
-    painter.restore()
+
+
+def _card_pixmap(w, h, dpr):
+    from calibre.gui2 import gprefs
+    from qt.core import QPixmap
+    key = (w, h, round(dpr * 100), _dark(), gprefs['cover_corner_radius'], gprefs['cover_corner_radius_unit'])
+    pm = _CACHE.get(key)
+    if pm is None:
+        if len(_CACHE) >= _CACHE_MAX:
+            _CACHE.clear()
+        pm = QPixmap(round((w + 2 * PAD) * dpr), round((h + 2 * PAD) * dpr))
+        pm.setDevicePixelRatio(dpr)
+        pm.fill(Qt.GlobalColor.transparent)
+        p = QPainter(pm)
+        _draw_card(p, QRect(PAD, PAD, w, h))
+        p.end()
+        _CACHE[key] = pm
+    return pm
+
+
+def paint_card(painter, rect):
+    if rect.width() < 4 or rect.height() < 4:
+        return
+    dev = painter.device()
+    dpr = dev.devicePixelRatioF() if dev is not None and hasattr(dev, 'devicePixelRatioF') else 1.0
+    pm = _card_pixmap(rect.width(), rect.height(), dpr)
+    # Only the frame around the cover: the inside is transparent and hidden by the cover anyway,
+    # and blending it cost several ms per frame on a full grid.
+    from qt.core import QRectF
+    W, H = rect.width() + 2 * PAD, rect.height() + 2 * PAD
+    E = PAD + EDGE_RADIUS
+    x0, y0 = rect.x() - PAD, rect.y() - PAD
+    for sx, sy, sw, sh in ((0, 0, W, E), (0, H - E, W, E), (0, E, E, H - 2 * E), (W - E, E, E, H - 2 * E)):
+        if sw > 0 and sh > 0:
+            painter.drawPixmap(QRectF(x0 + sx, y0 + sy, sw, sh), pm,
+                               QRectF(sx * dpr, sy * dpr, sw * dpr, sh * dpr))
 
 
 def install():
@@ -68,7 +111,8 @@ def install():
     if getattr(CoverDelegate, '_adwaita_patched', False):
         return True
 
-    original_cover = CoverDelegate.paint_cover
+    global _ORIG_COVER
+    original_cover = _ORIG_COVER = CoverDelegate.paint_cover
 
     def paint_cover(self, painter, rect, pixmap):
         paint_card(painter, rect)

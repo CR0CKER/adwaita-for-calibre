@@ -26,7 +26,7 @@ class Shots(InterfaceAction):
         self.steps = [
             ('main', self.main), ('focus', self.focus), ('statusbar', self.statusbar), ('hover', self.hover),
             ('layoutmenu', self.layoutmenu), ('scrolled', self.scrolled),
-            ('sidebar', self.sidebar),
+            ('sidebar', self.sidebar), ('perf', self.perf),
             ('menu', self.menu),
             ('menus', self.menus), ('grid', self.grid),
             ('prefs', self.prefs), ('metadata', self.metadata), ('news', self.news),
@@ -91,6 +91,59 @@ class Shots(InterfaceAction):
                                            sh.top.isVisible(), 'bottom', sh.bottom.isVisible(), flush=True),
                                      self.save(self.gui, 'sidebar'), self.next()))
         self.later(800, go)
+
+    def perf(self):
+        # Time cover-grid repaints with and without the plugin's card shadow, and the full
+        # window (corner overlay, translucency) for comparison.
+        import time
+
+        from calibre.gui2.library.alternate_views import CoverDelegate
+        av = self.gui.library_view.alternate_views
+        self.gui.grid_view_button.setChecked(True)
+
+        def run():
+            vp = av.current_view.viewport()
+
+            def t(label, w, n=20):
+                QApplication.processEvents()
+                st = time.perf_counter()
+                for _ in range(n):
+                    w.repaint()
+                ms = (time.perf_counter() - st) * 1000 / n
+                print(f'PERF {label}: {ms:.1f} ms/frame', flush=True)
+
+            t('grid viewport, card shadow on', vp)
+            patched = CoverDelegate.paint_cover
+            try:
+                from calibre_plugins.adwaita_for_calibre import covers
+                orig = getattr(covers, '_ORIG_COVER', None)
+            except ImportError:  # plain run, without the plugin
+                orig = None
+            if orig is not None:
+                CoverDelegate.paint_cover = orig
+                t('grid viewport, card shadow off', vp)
+                CoverDelegate.paint_cover = patched
+            t('whole window', self.gui, 10)
+            try:
+                from calibre_plugins.adwaita_for_calibre import covers
+                from qt.core import QPainter, QPixmap, QRect, Qt
+                img = QPixmap(1200, 1200)
+                img.setDevicePixelRatio(2.0)
+                img.fill(Qt.GlobalColor.transparent)
+                r = QRect(40, 40, 180, 270)
+                for label, fn in (('key+cache lookup', lambda p: covers._card_pixmap(180, 270, 2.0)),
+                                  ('paint_card', lambda p: covers.paint_card(p, r))):
+                    p = QPainter(img)
+                    p.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+                    st = time.perf_counter()
+                    for _ in range(200):
+                        fn(p)
+                    p.end()
+                    print(f'PERF {label}: {(time.perf_counter() - st) * 1000 / 200:.3f} ms/cover', flush=True)
+            except ImportError:
+                pass
+            self.next()
+        self.later(2500, run)
 
     def layoutmenu(self):
         from calibre.gui2.layout_menu import LayoutMenu
