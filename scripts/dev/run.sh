@@ -60,6 +60,12 @@ if [ -n "${CONFIGS_DEVICE:-}" ]; then
   rm -rf -- "$DEVICE"; mkdir -p "$DEVICE"
   find "$DEV/library" -name '*.epub' -print -quit | xargs -r -I{} cp -- {} "$DEVICE/"
 fi
+# ICONS=1 installs the Adwaita icon set into the dev profile (as Customize plugin -> Use Adwaita
+# icons does), ICONS=0 restores calibre's; unset leaves the profile as it is.
+case "${ICONS:-}" in
+  1) run --command=calibre-debug com.calibre_ebook.calibre -e "$ROOT/scripts/dev/icons_test.py" -- "$ZIP" "$ROOT" install >/dev/null ;;
+  0) run --command=calibre-debug com.calibre_ebook.calibre -e "$ROOT/scripts/dev/icons_test.py" -- "$ZIP" "$ROOT" restore >/dev/null ;;
+esac
 [ -e "$CFG/dynamic.pickle.json" ] || run --command=calibre-debug com.calibre_ebook.calibre \
     -c "from calibre.utils.config import dynamic; dynamic.set('welcome_wizard_was_run', True)" >/dev/null
 run --env=ADWAITA_SHOT_DIR="$DEV/shots" --env=ADWAITA_SHOT_TAG="$TAG" \

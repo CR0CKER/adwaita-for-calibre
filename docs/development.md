@@ -204,6 +204,9 @@ makes `.dev/device/` (a copy of one dev-library EPUB) and connects to it as a de
 *Connect to folder*; no real device is involved. `FIRSTRUN=1` starts as a fresh calibre (its own
 toolbar and search-bar text defaults, the plugin's first-run flag cleared); the `firstrun` step
 checks the switch to Small / no text and that `toolbarprefs.restore` unsets them again.
+`ICONS=1` installs the Adwaita icon set into the dev profile (as Customize plugin → *Use Adwaita
+icons* does), `ICONS=0` restores calibre's; unset leaves the profile as it is. `smoke.sh` runs
+with `ICONS=1`, so its screenshots show the icons users see.
 
 `run.sh` uses a throwaway profile (`.dev/config`, `.dev/library`) and never touches the real
 calibre profile. Build the library with `calibre-debug -e scripts/dev/mklib.py -- .dev/library`
