@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Local builds (`scripts/build.sh`) no longer pack the type checker's cache folder into the zip,
+  and the build now fails if a hidden or cache file would ship. Release zips were not affected:
+  they are built from a fresh checkout.
+
 ## [0.3.0] - 2026-11-20
 
 ### Added
