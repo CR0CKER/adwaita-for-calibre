@@ -15,8 +15,7 @@ from qt.core import QFrame, QIcon, QMenu, QSizePolicy, Qt, QToolButton
 # Main menu entries (calibre action names), in order; None is a separator.
 # '__layout__' is calibre's Layout popup (Quickview, search bar, wide/narrow, ...), whose status-bar
 # button the header bar's toggles replace.
-# '__statusbar__' shows or hides the status bar (statusbar.py; hidden by default).
-MAIN_MENU = ('Preferences', '__layout__', '__statusbar__', 'All GUI actions', None, 'Help', 'Restart')
+MAIN_MENU = ('Preferences', '__layout__', 'All GUI actions', None, 'Help', 'Restart')
 SEARCH_MAX_WIDTH = 880
 SEARCH_STRETCH = 4  # logical px; GNOME header-bar search entries are roughly this wide
 
@@ -118,10 +117,6 @@ def merge(gui, image_dir):
             if getattr(gui, 'layout_button_menu', None) is not None:
                 menu.addAction(QIcon.ic('layout.png'), 'Layout…', lambda: open_layout_popup(gui, btn))
             continue
-        if name == '__statusbar__':
-            if gui.statusBar() is not None:
-                status_bar_entry(gui, menu)
-            continue
         ia = gui.iactions.get(name)
         if ia is None:
             continue
@@ -153,32 +148,6 @@ def merge(gui, image_dir):
     bm.update_bars()
     debug('header bar merged')
     return True
-
-
-def status_bar_entry(gui, menu):
-    """Checkable 'Status bar' entry: shows or hides the status bar and remembers the choice."""
-    from calibre_plugins.adwaita_for_calibre import statusbar
-    from calibre_plugins.adwaita_for_calibre.main import prefs
-
-    a = menu.addAction('Status bar')
-    a.setCheckable(True)
-
-    def toggled(checked):
-        prefs()['show_status_bar'] = checked
-        statusbar.apply(gui, checked)
-
-    def sync():
-        # Follow the bar itself (also when something else toggles it) without saving the pref.
-        a.blockSignals(True)
-        a.setChecked(not gui.statusBar().isHidden())
-        a.blockSignals(False)
-
-    # The click toggles through `triggered`; the pref is applied after merge()
-    # (main.initialization_complete), and the entry re-reads the bar before each show.
-    a.triggered.connect(toggled)
-    menu.aboutToShow.connect(sync)
-    a.setChecked(prefs()['show_status_bar'])
-    return a
 
 
 def hide_status_layout_button(gui):

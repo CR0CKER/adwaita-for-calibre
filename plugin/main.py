@@ -559,6 +559,7 @@ class AdwaitaAction(InterfaceAction):
             image_dir = self.theme.image_dir(dark, self.theme.tokens(dark))
             merged = headerbar.merge(self.gui, image_dir)
             statusbar.apply(self.gui, prefs()['show_status_bar'] or not merged)
+            statusbar.menu_entry(self.gui)
             if merged and prefs()['integrated_titlebar']:
                 from calibre_plugins.adwaita_for_calibre import frameless
                 frameless.install(self.gui, image_dir)

@@ -1,9 +1,10 @@
 """The status bar: hidden by default, and its text trimmed when shown.
 
-Hidden: GNOME apps have no status bar. The main menu's "Status bar" entry shows it again
-(pref `show_status_bar`, remembered). Running jobs, which calibre shows only in the status bar,
-then appear as a spinner button in the header bar that opens calibre's Jobs list. (This replaces
-the separate Hide Statusbar plugin.)
+Hidden: GNOME apps have no status bar. Preferences -> Interface -> "Show status bar" (in the
+main menu and calibre's Preferences button menu) shows it again (pref `show_status_bar`,
+remembered). Running jobs, which calibre shows only in the status bar, then appear as a spinner
+button in the header bar that opens calibre's Jobs list. The spinner is libadwaita's (spin.py),
+not calibre's. (This replaces the separate Hide Statusbar plugin.)
 
 Shown: only what GNOME apps show (the item count and selection), not calibre's
 "calibre 9.18 created by Kovid Goyal" banner. A connected device stays visible. `_label` mirrors
@@ -61,8 +62,6 @@ def jobs_button(gui, parent):
     calibre_button = getattr(gui, 'jobs_button', None)
     if jm is None or calibre_button is None:
         return None
-    from calibre.gui2.progress_indicator import ProgressIndicator
-
     b = QToolButton(parent)
     b.setObjectName('adwaita_jobs_button')
     b.setAutoRaise(True)
@@ -74,7 +73,7 @@ def jobs_button(gui, parent):
     b.setIconSize(QSize(SPINNER_SIZE, SPINNER_SIZE))
     row = QHBoxLayout(b)
     row.setContentsMargins(0, 0, 0, 0)
-    spinner = ProgressIndicator(b, SPINNER_SIZE)
+    spinner = Spinner(b, SPINNER_SIZE)
     spinner.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
     row.addWidget(spinner, 0, Qt.AlignmentFlag.AlignCenter)
 
@@ -85,9 +84,9 @@ def jobs_button(gui, parent):
         b.setToolTip(f'{calibre_button.tray_tooltip(n)} (Jobs list: {calibre_button.shortcut})'
                      if calibre_button.shortcut else calibre_button.tray_tooltip(n))
         if show:
-            spinner.startAnimation()
+            spinner.start()
         else:
-            spinner.stopAnimation()
+            spinner.stop()
         b.setVisible(show)
 
     # Connected after calibre's JobsButton, so its count is already updated when these run.
@@ -98,3 +97,117 @@ def jobs_button(gui, parent):
     gui._adwaita_jobs_button = b
     refresh()
     return b
+
+
+def menu_entry(gui):
+    """Checkable "Show status bar" in calibre's Preferences menu, Interface section (the ☰ main
+    menu shows the same menu). Saves the pref and shows or hides the bar."""
+    ia = gui.iactions.get('Preferences')
+    pm = getattr(ia, 'preferences_menu', None) if ia is not None else None
+    if pm is None or gui.statusBar() is None:
+        return None
+    from calibre_plugins.adwaita_for_calibre.main import prefs
+    from qt.core import QAction
+
+    a = QAction('Show status bar', pm)
+    a.setObjectName('adwaita_show_status_bar')
+    a.setCheckable(True)
+
+    def toggled(checked):
+        prefs()['show_status_bar'] = checked
+        apply(gui, checked)
+
+    def sync():
+        # Follow the bar itself (also when something else toggles it) without saving the pref.
+        a.blockSignals(True)
+        a.setChecked(not gui.statusBar().isHidden())
+        a.blockSignals(False)
+
+    def place():
+        # calibre builds the per-category submenus in its own initialization_complete, which
+        # may run after ours: place the entry when the menu first opens, next to Look & feel.
+        look = getattr(ia, 'action_map', {}).get('Look & Feel')
+        for entry in pm.actions():
+            sub = entry.menu()
+            if sub is None or look not in sub.actions():
+                continue
+            if a not in sub.actions():
+                sub.addSeparator()
+                sub.addAction(a)
+                sub.aboutToShow.connect(sync)
+            return
+
+    a.triggered.connect(toggled)
+    pm.aboutToShow.connect(place)
+    place()
+    sync()
+    gui._adwaita_status_bar_action = a
+    return a
+
+
+def Spinner(parent, size):
+    """libadwaita's spinner (AdwSpinner) as a QWidget: a faint track and an arc whose ends ease
+    continuously (spin.py), drawn in the button's text colour. Driven by a QVariantAnimation on
+    Qt's animation timer (one frame per display refresh), with float angles."""
+    from calibre_plugins.adwaita_for_calibre import spin
+    from qt.core import (
+        QAbstractAnimation,
+        QColor,
+        QPainter,
+        QPalette,
+        QPen,
+        QRectF,
+        Qt,
+        QVariantAnimation,
+        QWidget,
+    )
+
+    class _Spinner(QWidget):
+        def __init__(self):
+            super().__init__(parent)
+            self.setFixedSize(size, size)
+            self.anim = a = QVariantAnimation(self)
+            a.setStartValue(0.0)
+            a.setEndValue(spin.LOOP_END)
+            a.setDuration(spin.LOOP_MS)
+            a.setLoopCount(-1)
+            a.valueChanged.connect(self.update)
+
+        def running(self):
+            return self.anim.state() == QAbstractAnimation.State.Running
+
+        def start(self):
+            if not self.running():
+                self.anim.start()
+
+        def stop(self):
+            self.anim.stop()
+            self.update()
+
+        def paintEvent(self, ev):
+            w, h = self.width(), self.height()
+            r = spin.radius(w, h)
+            lw = spin.line_width(2 * r)
+            if r < lw / 2:
+                return
+            progress = float(self.anim.currentValue()) if self.running() else spin.STILL
+            tail, span = spin.arc(progress)
+            colour = self.palette().color(QPalette.ColorRole.ButtonText)
+            track = QColor(colour)
+            track.setAlphaF(colour.alphaF() * spin.CIRCLE_OPACITY)
+            p = QPainter(self)
+            p.setRenderHint(QPainter.RenderHint.Antialiasing)
+            p.translate(round(w / 2), round(h / 2))
+            rr = r - lw / 2
+            rect = QRectF(-rr, -rr, 2 * rr, 2 * rr)
+            pen = QPen(track, lw)
+            pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+            p.setPen(pen)
+            p.drawEllipse(rect)
+            pen.setColor(colour)
+            p.setPen(pen)
+            # Qt measures angles counter-clockwise in 1/16 degree; libadwaita's run clockwise.
+            p.drawArc(rect, round(-tail * 16), round(-span * 16))
+            p.end()
+
+    return _Spinner()

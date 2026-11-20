@@ -1,6 +1,6 @@
 # Adwaita for calibre
 
-Last updated: 2026-11-20 12:25 PM CET
+Last updated: 2026-11-20 12:40 PM CET
 
 [![ci](https://github.com/CR0CKER/adwaita-for-calibre/actions/workflows/ci.yml/badge.svg)](https://github.com/CR0CKER/adwaita-for-calibre/actions/workflows/ci.yml)
 [![License: GPL-3.0](https://img.shields.io/github/license/CR0CKER/adwaita-for-calibre)](LICENSE)
@@ -37,8 +37,9 @@ GNOME expanders and an action bar for Configure / Find. Shadows appear under the
 while content is scrolled beneath it.
 
 **No status bar.** Like other GNOME apps, calibre's status bar is hidden; running jobs (news
-downloads, conversions) show as a spinner in the header bar that opens the Jobs list. ☰ →
-*Status bar* brings the bar back (remembered across restarts); it then shows just the book count
+downloads, conversions) show as GNOME's spinner in the header bar, which opens the Jobs list.
+Preferences → Interface → *Show status bar* (in the ☰ menu) brings the bar back (remembered
+across restarts); it then shows just the book count
 and selection, with a shadow above it while content is scrolled beneath. The Layout button moves
 to the main menu either way.
 
@@ -111,7 +112,8 @@ overrides you set for calibre). For a non-Flatpak calibre, start it with `QT_QPA
   overridden. It can be switched off in the viewer's Preferences → Scrolling behavior.
 - The book editor and other separate calibre programs keep calibre's look.
 - With the status bar hidden, the book count and selection, device messages and calibre's update
-  notice are not shown; switch it on in ☰ → *Status bar* if you want them. If you used the
+  notice are not shown; switch it on in Preferences → Interface → *Show status bar* if you want
+  them. If you used the
   *Hide Statusbar* plugin, it is no longer needed.
 - calibre's *Toggle search bar* shortcut (Shift+Alt+F) hides the whole header bar, since the
   header bar is calibre's search bar; press it again to bring it back.
