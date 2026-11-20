@@ -1,6 +1,6 @@
 # Adwaita for calibre
 
-Last updated: 2026-11-19 09:36 PM CET
+Last updated: 2026-11-20 12:46 PM CET
 
 [![ci](https://github.com/CR0CKER/adwaita-for-calibre/actions/workflows/ci.yml/badge.svg)](https://github.com/CR0CKER/adwaita-for-calibre/actions/workflows/ci.yml)
 [![License: GPL-3.0](https://img.shields.io/github/license/CR0CKER/adwaita-for-calibre)](LICENSE)
@@ -33,9 +33,15 @@ tabs, overlay scroll bars that fade out, flat column headers, cards for group bo
 
 **A three-pane layout.** The tag browser and the book details pane share the book area's colour
 and are set off from it by hairlines instead of splitter grips. The tag browser gets rounded rows,
-GNOME expanders and an action bar for Configure / Find. Shadows appear under the header bar and
-above the status bar only while content is scrolled beneath them. The status bar shows just the
-book count and selection; its Layout button moves to the main menu.
+GNOME expanders and an action bar for Configure / Find. Shadows appear under the header bar only
+while content is scrolled beneath it.
+
+**No status bar.** Like other GNOME apps, calibre's status bar is hidden; running jobs (news
+downloads, conversions) show as GNOME's spinner in the header bar, which opens the Jobs list.
+Preferences → Interface → *Show status bar* (in the ☰ menu) or Ctrl+Shift+S brings the bar back
+(remembered across restarts); it then shows just the book count
+and selection, with a shadow above it while content is scrolled beneath. The Layout button moves
+to the main menu either way.
 
 **Books.** Covers are drawn as cards with a soft shadow, so white covers stand out on a white
 grid. The bookshelf view uses flat Adwaita colours instead of wood.
@@ -105,6 +111,10 @@ overrides you set for calibre). For a non-Flatpak calibre, start it with `QT_QPA
 - The e-book viewer's in-page scroll bar keeps calibre's look: the viewer's page files cannot be
   overridden. It can be switched off in the viewer's Preferences → Scrolling behavior.
 - The book editor and other separate calibre programs keep calibre's look.
+- With the status bar hidden, the book count and selection, device messages and calibre's update
+  notice are not shown; switch it on in Preferences → Interface → *Show status bar* (Ctrl+Shift+S)
+  if you want them. If you used the
+  *Hide Statusbar* plugin, it is no longer needed.
 - calibre's *Toggle search bar* shortcut (Shift+Alt+F) hides the whole header bar, since the
   header bar is calibre's search bar; press it again to bring it back.
 

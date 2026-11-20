@@ -32,7 +32,8 @@ class Shots(InterfaceAction):
         self.tag = os.environ.get('ADWAITA_SHOT_TAG', 'shot')
         self.only = set(filter(None, os.environ.get('ADWAITA_SHOT_ONLY', '').split(',')))
         self.steps = [
-            ('main', self.main), ('focus', self.focus), ('statusbar', self.statusbar), ('hover', self.hover),
+            ('main', self.main), ('jobsbutton', self.jobsbutton), ('focus', self.focus),
+            ('statusbar', self.statusbar), ('spinner', self.spinner), ('hover', self.hover),
             ('layoutmenu', self.layoutmenu), ('scrolled', self.scrolled),
             ('sidebar', self.sidebar), ('perf', self.perf),
             ('edges', self.edges), ('details', self.details), ('toggles', self.toggles),
@@ -454,8 +455,114 @@ class Shots(InterfaceAction):
               'normal', d.text_color(False, opt.palette).name(), flush=True)
         self.next()
 
+    def jobsbutton(self):
+        # The status bar is hidden by default (pref show_status_bar); Preferences -> Interface ->
+        # "Show status bar" brings it back; while it is hidden, running jobs show as a header-bar
+        # spinner button.
+        from qt.core import QToolButton, QWidget
+        gui = self.gui
+        sb = gui.statusBar()
+        jm = gui.job_manager
+        self.check(sb.isHidden(), 'status bar hidden by default')
+        b = gui.search_bar.findChild(QToolButton, 'adwaita_jobs_button')
+        self.check(b is not None, 'jobs button in the header bar')
+        main_menu = gui.search_bar.findChild(QToolButton, 'adwaita_main_menu').menu()
+        self.check(not any(a.text() == 'Show status bar' for a in main_menu.actions()),
+                   'no status bar entry at the top of the main menu')
+        pm = gui.iactions['Preferences'].preferences_menu
+        pm.aboutToShow.emit()  # what opening Preferences in the main menu does
+        look = gui.iactions['Preferences'].action_map['Look & Feel']
+        subs = [a.menu() for a in pm.actions() if a.menu() is not None]
+        interface = next((m for m in subs if look in m.actions()), None)
+        entries = interface.actions() if interface is not None else []
+        entry = next((a for a in entries if a.text() == 'Show status bar'), None)
+        where = interface.title() if interface is not None else None
+        self.check(entry is not None and entry.isCheckable() and not entry.isChecked(),
+                   f'unchecked "Show status bar" under Preferences -> {where}')
+        if b is None or entry is None:
+            self.next()
+            return
+        self.check(b.isHidden(), 'jobs button hidden with no jobs')
+        jm.job_added.emit(1)  # what calibre's JobManager emits when a job starts
+        self.check(not b.isHidden(), 'jobs button shown while a job runs')
+        self.check('One running job' in b.toolTip(), f'jobs button tooltip ({b.toolTip()!r})')
+        spinner = b.findChildren(QWidget)[0]
+        self.check(spinner.running(), 'spinner animates while a job runs')
+
+        def shown():
+            self.save(gui.search_bar, 'jobsbutton')
+            entry.trigger()
+            self.check(not sb.isHidden(), 'menu entry shows the status bar')
+            from calibre_plugins.adwaita_for_calibre.main import prefs
+            self.check(prefs()['show_status_bar'] is True, 'menu entry saves the choice')
+            self.check(b.isHidden(), 'jobs button hidden while the status bar shows')
+            entry.trigger()
+            self.check(sb.isHidden(), 'menu entry hides the status bar again')
+            self.check(not b.isHidden(), 'jobs button back once the status bar hides')
+            jm.job_done.emit(0)
+            self.check(b.isHidden(), 'jobs button hidden when the last job ends')
+            self.check(not spinner.running(), 'spinner stops when the last job ends')
+            # Ctrl+Shift+S, the Hide Statusbar plugin's shortcut, through calibre's keyboard manager.
+            keys = [k.toString() for k in gui.keyboard.keys_map.get('adwaita toggle status bar', ())]
+            self.check(keys == ['Ctrl+Shift+S'], f'status bar shortcut is Ctrl+Shift+S ({keys})')
+            self.check(entry in gui.actions(), 'shortcut works with the menu closed')
+            sb.setVisible(True)  # shown by something else: the entry's check mark is stale
+            entry.trigger()
+            self.check(sb.isHidden(), 'shortcut toggles from the bar itself, not a stale check mark')
+            self.check(prefs()['show_status_bar'] is False and not entry.isChecked(),
+                       'shortcut saves the choice and updates the check mark')
+            self.next()
+        self.later(600, shown)
+
+    def spinner(self):
+        # The header-bar jobs spinner: how often it actually repaints, how long a repaint takes,
+        # and which other widgets repaint along with it (all with a fake running job).
+        import time
+
+        from qt.core import QEvent, QObject, QToolButton, QWidget
+        gui = self.gui
+        b = gui.search_bar.findChild(QToolButton, 'adwaita_jobs_button')
+        if b is None:
+            self.next()
+            return
+        spinner = b.findChildren(QWidget)[0]
+        stamps, others = [], {}
+
+        class Watch(QObject):
+            def eventFilter(self, obj, ev):
+                if ev.type() == QEvent.Type.Paint:
+                    if obj is spinner:
+                        stamps.append(time.perf_counter())
+                    else:
+                        k = type(obj).__name__ + ':' + obj.objectName()
+                        others[k] = others.get(k, 0) + 1
+                return False
+        w = Watch(gui)
+        watched = [spinner] + [x for x in gui.findChildren(QWidget) if x.isVisible()] + [gui]
+        for x in watched:
+            x.installEventFilter(w)
+        gui.job_manager.job_added.emit(1)
+
+        def done():
+            for x in watched:
+                x.removeEventFilter(w)
+            gaps = sorted((b2 - a) * 1000 for a, b2 in zip(stamps, stamps[1:], strict=False))
+            if gaps:
+                n = len(gaps)
+                print(f'SPIN paints {len(stamps)} in 3 s; gap ms median {gaps[n // 2]:.1f} '
+                      f'p90 {gaps[int(n * 0.9)]:.1f} max {gaps[-1]:.1f}', flush=True)
+            top = sorted(others.items(), key=lambda kv: -kv[1])[:8]
+            print('SPIN also repainted', top, flush=True)
+            st = time.perf_counter()
+            for _ in range(30):
+                spinner.repaint()
+            print(f'SPIN repaint {(time.perf_counter() - st) * 1000 / 30:.2f} ms', flush=True)
+            gui.job_manager.job_done.emit(0)
+            self.next()
+        self.later(3000, done)
+
     def statusbar(self):
-        # Toggle the status bar off and on again, as calibre's Layout / Hide Statusbar do.
+        # Toggle the status bar on and off again, as the Preferences entry / calibre's Layout do.
         sb = self.gui.statusBar()
         sb.setVisible(False)
 

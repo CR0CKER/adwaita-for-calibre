@@ -130,7 +130,12 @@ def merge(gui, image_dir):
     btn.setMenu(menu)
     btn.setStyleSheet('QToolButton::menu-indicator { image: none; width: 0; }')
     hide_status_layout_button(gui)
-    # ... preceded by the toggle for the right-hand sidebar: book details.
+    # ... preceded by the toggle for the right-hand sidebar: book details, and before that the
+    # running-jobs spinner while the status bar is hidden.
+    from calibre_plugins.adwaita_for_calibre import statusbar
+    jobs = statusbar.jobs_button(gui, sb)
+    if jobs is not None:
+        lay.addWidget(jobs)
     right = sidebar_toggle(gui, sb, 'book_details_button', 'sidebar-right.svg')
     if right is not None:
         lay.addWidget(right)

@@ -11,7 +11,7 @@ MODE="${1:-dark}"
 OUT="$(mktemp)"
 trap 'rm -f "$OUT"' EXIT
 export ADWAITA_SMOKE=1
-TAIL=100000 ONLY=main,layoutmenu,views,toggles,sidetoggle,covertoggle,slide,coverroom,mdcheck,prefcheck,edges,perf,sidebar,details WIDTH="${WIDTH:-1450}" \
+TAIL=100000 ONLY=main,jobsbutton,layoutmenu,views,toggles,sidetoggle,covertoggle,slide,coverroom,mdcheck,prefcheck,edges,perf,sidebar,details WIDTH="${WIDTH:-1450}" \
     timeout 300 "$ROOT/scripts/dev/run.sh" smoke "$MODE" > "$OUT" 2>&1 || true
 grep -E '^SMOKE ' "$OUT" || true
 if grep -q '^SMOKE OK' "$OUT"; then

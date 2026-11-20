@@ -494,6 +494,7 @@ def prefs():
     p = JSONConfig('plugins/adwaita_for_calibre')
     p.defaults['integrated_titlebar'] = False
     p.defaults['theme_viewer'] = True
+    p.defaults['show_status_bar'] = False  # statusbar.py: GNOME apps have none
     p.defaults['viewer_scheme_set'] = False
     p.defaults['viewer_previous_scheme'] = ''
     return p
@@ -556,7 +557,10 @@ class AdwaitaAction(InterfaceAction):
             from qt.core import QApplication
             dark = QApplication.instance().palette_manager.is_dark_theme
             image_dir = self.theme.image_dir(dark, self.theme.tokens(dark))
-            if headerbar.merge(self.gui, image_dir) and prefs()['integrated_titlebar']:
+            merged = headerbar.merge(self.gui, image_dir)
+            statusbar.apply(self.gui, prefs()['show_status_bar'] or not merged)
+            statusbar.menu_entry(self.gui)
+            if merged and prefs()['integrated_titlebar']:
                 from calibre_plugins.adwaita_for_calibre import frameless
                 frameless.install(self.gui, image_dir)
         except Exception:  # noqa: BLE001 -- plugin must not break calibre's startup; traceback printed
