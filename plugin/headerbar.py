@@ -44,13 +44,21 @@ def merge(gui, image_dir):
         lay.insertWidget(0, left)
         first_bar += 1
 
-    # 2. Icon-only buttons in the row, like a header bar (tooltips keep the labels).
-    for b in sb.findChildren(QToolButton):
-        if b.parent() is sb or b.parent() not in bm.main_bars:
-            if b.toolButtonStyle() != Qt.ToolButtonStyle.ToolButtonIconOnly and not b.icon().isNull():
-                if not b.toolTip():
-                    b.setToolTip(b.text().replace('&', ''))
-                b.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
+    # Overflow: actions that don't fit go into a visible ⋯ button right after each toolbar.
+    for bar in bm.main_bars:
+        slot = overflow_button(bar, sb)
+        lay.insertWidget(lay.indexOf(bar) + 1, slot)
+        first_bar += 1
+    # calibre's bottom toolbar (optional): the header bar's side padding, clear of the corners.
+    for bar in bm.child_bars:
+        bar.setStyleSheet('QToolBar { border: 0px; padding: 6px 8px; }')
+
+    # 2. Icon-only buttons in the row, like a header bar (tooltips keep the labels). calibre
+    # rebuilds the search-row buttons (BarsManager.init_bars) with or without text as its own
+    # "Show text in the buttons of the search bar" says; the first run turns that off
+    # (toolbarprefs.py), so rebuilt buttons stay icon-only without help.
+    icon_only(gui)
+    disable_reveal_sweep()
 
     # GNOME searches on Enter / as you type; the separate Search button is redundant there.
     search_button = getattr(sb, 'search_button', None)
@@ -148,6 +156,126 @@ def merge(gui, image_dir):
     bm.update_bars()
     debug('header bar merged')
     return True
+
+
+def icon_only(gui):
+    """Icon-only buttons in the header row (tooltips keep the labels), except the search-row
+    buttons when calibre's own "Show text in the buttons of the search bar" setting is on."""
+    from calibre.gui2 import gprefs
+    sb, bm = gui.search_bar, gui.bars_manager
+    keep_text = set()
+    if gprefs['search_tool_bar_shows_text']:
+        keep_text = set(getattr(bm.search_tool_bar, 'search_tool_bar_widgets', ()))
+    for b in sb.findChildren(QToolButton):
+        if b in keep_text or b.parent() in bm.main_bars:
+            continue
+        if b.toolButtonStyle() != Qt.ToolButtonStyle.ToolButtonIconOnly and not b.icon().isNull():
+            if not b.toolTip():
+                b.setToolTip(b.text().replace('&', ''))
+            b.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
+
+
+def disable_reveal_sweep():
+    """calibre sweeps a grey band over the toolbar when a device connects (bars.RevealBar). It
+    places the band with the toolbar's parent-relative geometry, which is off once the toolbar
+    sits inside the header bar; header bars don't animate their content that way anyway."""
+    from calibre.gui2.bars import RevealBar
+    if not getattr(RevealBar, '_adwaita_off', False):
+        RevealBar.start = lambda self, bar: None
+        RevealBar._adwaita_off = True
+
+
+def overflow_button(bar, parent):
+    """A ⋯ header button listing the toolbar's actions that don't fit, shown only while some
+    don't. Qt's own overflow button is fixed at calibre's 12 px extension size and draws no
+    icon under this style, so it is shrunk to nothing.
+
+    The toolbar keeps the width the header gives it even when its last buttons don't fit, so a
+    button laid out after it would sit behind a gap. Instead the ⋯ floats right after the last
+    visible button, and an empty slot of its width (returned, for the header's layout) reserves
+    the room; the gap ends up after the ⋯, in the header's free space."""
+    from qt.core import QEvent, QObject, QTimer, QWidget
+    b = QToolButton(parent)
+    b.setObjectName('adwaita_overflow')
+    b.setAutoRaise(True)
+    b.setToolTip('More actions')
+    tracked_icon(b, 'view-more.svg')
+    b.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+    b.setStyleSheet('QToolButton::menu-indicator { image: none; width: 0; }')
+    menu = QMenu(b)
+    b.setMenu(menu)
+
+    def hidden_actions():
+        out = []
+        for a in bar.actions():
+            if a.isSeparator() or not a.isVisible():
+                continue
+            w = bar.widgetForAction(a)
+            if w is None or not w.isVisible():
+                if w is not None and w is getattr(bar, 'donate_button', None):
+                    # Donate sits in the toolbar as a widget; a menu would take the widget
+                    # itself, so list calibre's Donate action instead.
+                    a = bar.donate_action
+                out.append(a)
+        return out
+
+    def fill():
+        menu.clear()  # the actions belong to calibre; clear() only detaches them
+        for a in hidden_actions():
+            menu.addAction(a)
+
+    slot = QWidget(parent)
+    slot.setObjectName('adwaita_overflow_slot')
+    slot.setFixedWidth(b.sizeHint().width())
+    slot.hide()
+    pending = [False]
+
+    def place():
+        right = max((w.geometry().right() for a in bar.actions()
+                     if (w := bar.widgetForAction(a)) is not None and w.isVisible()), default=0)
+        x = bar.x() + right + 1 + bar.layout().spacing()
+        b.move(x, bar.y() + (bar.height() - b.height()) // 2)
+        b.raise_()
+
+    def refresh():
+        pending[0] = False
+        try:
+            show = bar.isVisible() and bool(hidden_actions())
+            slot.setVisible(show)
+            b.setVisible(show)
+            if show:
+                b.resize(b.sizeHint())
+                place()
+        except RuntimeError:
+            pass  # shutting down
+
+    def schedule():
+        # After the toolbar's own layout pass, which decides what overflows.
+        if not pending[0]:
+            pending[0] = True
+            QTimer.singleShot(0, refresh)
+
+    watched = {QEvent.Type.Resize, QEvent.Type.Move, QEvent.Type.Show, QEvent.Type.Hide,
+               QEvent.Type.LayoutRequest, QEvent.Type.ActionAdded, QEvent.Type.ActionRemoved,
+               QEvent.Type.ActionChanged}
+
+    class Watch(QObject):
+        def eventFilter(self, obj, ev):
+            if ev.type() in watched:
+                schedule()
+            return False
+
+    b._adwaita_watch = w = Watch(b)
+    bar.installEventFilter(w)
+    menu.aboutToShow.connect(fill)
+    ext = bar.findChild(QToolButton, 'qt_toolbar_ext_button')
+    if ext is not None:
+        ext.setMaximumWidth(0)
+    bar._adwaita_overflow = b
+    b._adwaita_refresh = schedule
+    b.hide()
+    schedule()
+    return slot
 
 
 def hide_status_layout_button(gui):

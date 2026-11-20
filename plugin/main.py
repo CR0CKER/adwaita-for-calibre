@@ -28,6 +28,7 @@ IMAGES = (
     'images/sidebar-show-right-symbolic.svg',
     'images/cover-browser-symbolic.svg',
     'images/dialog-warning-symbolic.svg',
+    'images/view-more-symbolic.svg',
 )
 RADIO_DOT = (
     '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">'
@@ -122,6 +123,7 @@ class Theme:
             'sidebar-left.svg': ('sidebar-show-symbolic.svg', t['fg']),
             'sidebar-right.svg': ('sidebar-show-right-symbolic.svg', t['fg']),
             'cover-browser.svg': ('cover-browser-symbolic.svg', t['fg']),
+            'view-more.svg': ('view-more-symbolic.svg', t['fg']),
             # Sort-field status (metadata.py): libadwaita success / warning colours.
             'status-ok.svg': ('object-select-symbolic.svg', t['success_bg']),
             'status-warning.svg': ('dialog-warning-symbolic.svg', t['warning_bg']),
@@ -495,6 +497,8 @@ def prefs():
     p.defaults['integrated_titlebar'] = False
     p.defaults['theme_viewer'] = True
     p.defaults['show_status_bar'] = False  # statusbar.py: GNOME apps have none
+    p.defaults['toolbar_adopted'] = False  # toolbarprefs.py: calibre's toolbar set to Small once
+    p.defaults['previous_toolbar'] = {}
     p.defaults['viewer_scheme_set'] = False
     p.defaults['viewer_previous_scheme'] = ''
     return p
@@ -537,7 +541,11 @@ class AdwaitaAction(InterfaceAction):
         if not getattr(self, 'active', False):
             return
         try:
-            install_toolbar_size(self.gui)
+            from calibre.gui2 import gprefs
+            from calibre_plugins.adwaita_for_calibre import toolbarprefs
+            if toolbarprefs.adopt(gprefs, prefs()):
+                debug('toolbar set to Small icons without text (first run)')
+            install_toolbar_size(self.gui)  # applies calibre's toolbar settings
             from calibre_plugins.adwaita_for_calibre import panes, shade, slide, statusbar
             panes.install(self.gui)
             slide.install()

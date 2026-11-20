@@ -15,6 +15,26 @@ All notable changes to this project are documented here. The format follows
   hidden, running jobs show as libadwaita's spinner in the header bar, before the book-details
   toggle; clicking it opens the Jobs list. The spinner is ported from libadwaita (continuous
   motion, a faint track), not calibre's, whose arc pauses and then swings round in jumps.
+- Actions that don't fit in the header bar go into a ⋯ button right after the last one that
+  does. Before, they disappeared behind calibre's overflow button, which drew nothing, so with
+  calibre's default toolbar up to 13 actions (Preferences and Remove books among them) could
+  not be reached from the header.
+
+### Changed
+
+- On its first run the plugin switches calibre's toolbar to Small icons without text and turns
+  off text on the search-bar buttons, once, so the header bar is GNOME's size; calibre's
+  defaults (Medium icons with text) made it 96 px tall with three actions visible. Your previous
+  settings are remembered: Customize plugin → *Restore calibre's look* puts them back, and the
+  plugin does not change them again.
+- calibre's sweep across the toolbar when a device connects is off: it was drawn 16 px off the
+  toolbar with the integrated title bar.
+
+### Fixed
+
+- With the integrated title bar, empty parts of calibre's optional menu bar move the window,
+  like the header bar.
+- calibre's optional bottom toolbar keeps its first button clear of the window's rounded corner.
 
 ## [0.2.1] - 2026-11-19
 

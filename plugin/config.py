@@ -104,8 +104,9 @@ class ConfigWidget(QWidget):
         row.addStretch()
         self.reset_button = QPushButton("Restore calibre's look")
         self.reset_button.setToolTip(
-            "Before removing the plugin: restores your previous icons, calibre's own colours and the "
-            "e-book viewer's previous colour scheme, and turns viewer theming off.")
+            "Before removing the plugin: restores your previous icons, calibre's own colours, your "
+            "previous toolbar icon size and text setting and the e-book viewer's previous colour "
+            "scheme, and turns viewer theming off.")
         self.reset_button.clicked.connect(self.do_reset)
         layout.addLayout(row)
 
@@ -163,6 +164,9 @@ class ConfigWidget(QWidget):
         try:
             if installed() or backups():
                 restore()
+            from calibre.gui2 import gprefs
+            from calibre_plugins.adwaita_for_calibre import toolbarprefs
+            toolbarprefs.restore(gprefs, self.prefs)
             self.prefs['theme_viewer'] = False
             self.viewer.setChecked(False)
             viewer_done = viewer.unsync(self.prefs)

@@ -25,8 +25,15 @@ import json, sys, os
 path, mode, lib = sys.argv[1:]
 d = json.load(open(path)) if os.path.exists(path) else {}
 d['color_palette'] = mode
-d.setdefault('toolbar_text', 'never')
-d.setdefault('toolbar_icon_size', 'small')
+if os.environ.get('FIRSTRUN'):
+    # As a fresh calibre: its own toolbar defaults (Medium icons, text always), plugin not yet run.
+    d.pop('toolbar_text', None)
+    d.pop('toolbar_icon_size', None)
+    d.pop('search_tool_bar_shows_text', None)
+else:
+    d.setdefault('toolbar_text', 'never')
+    d.setdefault('toolbar_icon_size', 'small')
+    d.setdefault('search_tool_bar_shows_text', False)
 open(path, 'w').write(json.dumps(d, indent=2))
 g = os.path.join(os.path.dirname(path), 'global.py.json')
 gd = json.load(open(g)) if os.path.exists(g) else {}
@@ -37,6 +44,9 @@ open(g, 'w').write(json.dumps(gd, indent=2))
 ap = os.path.join(os.path.dirname(path), 'plugins', 'adwaita_for_calibre.json')
 ad = json.load(open(ap)) if os.path.exists(ap) else {}
 ad.pop('show_status_bar', None)
+if os.environ.get('FIRSTRUN'):
+    ad.pop('toolbar_adopted', None)
+    ad.pop('previous_toolbar', None)
 if os.environ.get('INTEGRATED'):
     ad['integrated_titlebar'] = True
 else:
@@ -54,6 +64,6 @@ fi
     -c "from calibre.utils.config import dynamic; dynamic.set('welcome_wizard_was_run', True)" >/dev/null
 run --env=ADWAITA_SHOT_DIR="$DEV/shots" --env=ADWAITA_SHOT_TAG="$TAG" \
     --env=ADWAITA_SHOT_ONLY="${ONLY:-}" --env=ADWAITA_SHOT_WIDTH="${WIDTH:-0}" --env=ADWAITA_CALIBRE_DEBUG=1 \
-    --env=ADWAITA_SMOKE="${ADWAITA_SMOKE:-}" --env=ADWAITA_SLIDE_TIMING="${ADWAITA_SLIDE_TIMING:-}" --env=SLIDE_LIST="${SLIDE_LIST:-}" --env=SLIDE_MID_MS="${SLIDE_MID_MS:-}" --env=ADWAITA_TREE="${ADWAITA_TREE:-}" --env=ADWAITA_DEVICE_DIR="${CONFIGS_DEVICE:+$DEVICE}" \
+    --env=ADWAITA_SMOKE="${ADWAITA_SMOKE:-}" --env=ADWAITA_SLIDE_TIMING="${ADWAITA_SLIDE_TIMING:-}" --env=SLIDE_LIST="${SLIDE_LIST:-}" --env=SLIDE_MID_MS="${SLIDE_MID_MS:-}" --env=ADWAITA_TREE="${ADWAITA_TREE:-}" --env=ADWAITA_DEVICE_DIR="${CONFIGS_DEVICE:+$DEVICE}" --env=ADWAITA_FIRSTRUN="${FIRSTRUN:-}" \
     com.calibre_ebook.calibre --with-library "$DEV/library" --no-update-check 2>&1 \
   | grep -vE 'QRhi|Vulkan|GPU vendor|^$' | tail -n "${TAIL:-40}"
