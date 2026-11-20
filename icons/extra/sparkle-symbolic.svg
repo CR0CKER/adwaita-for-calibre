@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- AI sparkle: a large four-pointed star with a small one beside it, the common symbol for AI
+     features, drawn for Adwaita for calibre in the style of GNOME symbolic icons (16 px grid,
+     filled shapes). Part of this plugin, GPL-3.0. -->
+<svg height="16px" viewBox="0 0 16 16" width="16px" xmlns="http://www.w3.org/2000/svg">
+    <g fill="#2e3436">
+        <path d="M 6.5 4 Q 8.1 7.9 12 9.5 Q 8.1 11.1 6.5 15 Q 4.9 11.1 1 9.5 Q 4.9 7.9 6.5 4 Z"/>
+        <path d="M 12.5 1 Q 13.3 2.7 15 3.5 Q 13.3 4.3 12.5 6 Q 11.7 4.3 10 3.5 Q 11.7 2.7 12.5 1 Z"/>
+    </g>
+</svg>

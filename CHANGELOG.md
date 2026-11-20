@@ -32,6 +32,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- The icon set's AI icon is an AI sparkle drawn in GNOME's symbolic style; it was the same star
+  as the rating icon.
 - With the integrated title bar, empty parts of calibre's optional menu bar move the window,
   like the header bar.
 - calibre's optional bottom toolbar keeps its first button clear of the window's rounded corner.

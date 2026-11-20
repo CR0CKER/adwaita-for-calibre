@@ -1,6 +1,6 @@
 # Adwaita for calibre
 
-Last updated: 2026-11-20 02:09 PM CET
+Last updated: 2026-11-20 02:39 PM CET
 
 [![ci](https://github.com/CR0CKER/adwaita-for-calibre/actions/workflows/ci.yml/badge.svg)](https://github.com/CR0CKER/adwaita-for-calibre/actions/workflows/ci.yml)
 [![License: GPL-3.0](https://img.shields.io/github/license/CR0CKER/adwaita-for-calibre)](LICENSE)
@@ -153,9 +153,9 @@ build bundles its own Qt, so system Qt styles cannot load. See
 
 GPL-3.0, see [LICENSE](LICENSE). The icon set and indicator images are GNOME's Adwaita symbolic
 icons from adwaita-icon-theme 49.0 (LGPL-3.0-only or CC-BY-SA-3.0, GNOME Project), recoloured;
-the search field's cog is GNOME Settings' symbolic icon (gnome-control-center 49, CC0-1.0); nine
+the search field's cog is GNOME Settings' symbolic icon (gnome-control-center 49, CC0-1.0); ten
 symbols GNOME has no icon for (books, tag, ++, −−, text colour, superscript, subscript, heading,
-horizontal rule) and the cover-browser toggle's icon were drawn for this plugin in the same style
+horizontal rule, the AI sparkle) and the cover-browser toggle's icon were drawn for this plugin in the same style
 (GPL-3.0). Colour values are taken
 from libadwaita (LGPL-2.1-or-later).
 

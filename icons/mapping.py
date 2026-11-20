@@ -13,7 +13,7 @@ badges, logos, textures, the default cover and the green/red status dots (see KE
 MAPPING: dict[str, str] = {
     'accessibility.png': 'legacy/preferences-desktop-accessibility',
     'add_book.png': 'actions/list-add',
-    'ai.png': 'status/starred',
+    'ai.png': 'local:sparkle',  # the AI sparkle; status/starred was the same icon as rating
     'arrow-down.png': 'actions/go-down',
     'arrow-up.png': 'actions/go-up',
     'auto_author_sort.png': 'actions/view-sort-ascending',
