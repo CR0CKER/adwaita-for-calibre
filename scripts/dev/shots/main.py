@@ -32,7 +32,8 @@ class Shots(InterfaceAction):
         self.tag = os.environ.get('ADWAITA_SHOT_TAG', 'shot')
         self.only = set(filter(None, os.environ.get('ADWAITA_SHOT_ONLY', '').split(',')))
         self.steps = [
-            ('main', self.main), ('focus', self.focus), ('statusbar', self.statusbar), ('hover', self.hover),
+            ('main', self.main), ('jobsbutton', self.jobsbutton), ('focus', self.focus),
+            ('statusbar', self.statusbar), ('hover', self.hover),
             ('layoutmenu', self.layoutmenu), ('scrolled', self.scrolled),
             ('sidebar', self.sidebar), ('perf', self.perf),
             ('edges', self.edges), ('details', self.details), ('toggles', self.toggles),
@@ -454,8 +455,45 @@ class Shots(InterfaceAction):
               'normal', d.text_color(False, opt.palette).name(), flush=True)
         self.next()
 
+    def jobsbutton(self):
+        # The status bar is hidden by default (pref show_status_bar); the main menu's "Status
+        # bar" entry brings it back; while it is hidden, running jobs show as a header-bar button.
+        from qt.core import QToolButton
+        gui = self.gui
+        sb = gui.statusBar()
+        jm = gui.job_manager
+        self.check(sb.isHidden(), 'status bar hidden by default')
+        b = gui.search_bar.findChild(QToolButton, 'adwaita_jobs_button')
+        self.check(b is not None, 'jobs button in the header bar')
+        menu = gui.search_bar.findChild(QToolButton, 'adwaita_main_menu').menu()
+        entry = next((a for a in menu.actions() if a.text() == 'Status bar'), None)
+        self.check(entry is not None and entry.isCheckable() and not entry.isChecked(),
+                   'unchecked "Status bar" entry in the main menu')
+        if b is None or entry is None:
+            self.next()
+            return
+        self.check(b.isHidden(), 'jobs button hidden with no jobs')
+        jm.job_added.emit(1)  # what calibre's JobManager emits when a job starts
+        self.check(not b.isHidden(), 'jobs button shown while a job runs')
+        self.check('One running job' in b.toolTip(), f'jobs button tooltip ({b.toolTip()!r})')
+
+        def shown():
+            self.save(gui.search_bar, 'jobsbutton')
+            entry.trigger()
+            self.check(not sb.isHidden(), 'main menu entry shows the status bar')
+            from calibre_plugins.adwaita_for_calibre.main import prefs
+            self.check(prefs()['show_status_bar'] is True, 'main menu entry saves the choice')
+            self.check(b.isHidden(), 'jobs button hidden while the status bar shows')
+            entry.trigger()
+            self.check(sb.isHidden(), 'main menu entry hides the status bar again')
+            self.check(not b.isHidden(), 'jobs button back once the status bar hides')
+            jm.job_done.emit(0)
+            self.check(b.isHidden(), 'jobs button hidden when the last job ends')
+            self.next()
+        self.later(600, shown)
+
     def statusbar(self):
-        # Toggle the status bar off and on again, as calibre's Layout / Hide Statusbar do.
+        # Toggle the status bar on and off again, as the main menu entry / calibre's Layout do.
         sb = self.gui.statusBar()
         sb.setVisible(False)
 

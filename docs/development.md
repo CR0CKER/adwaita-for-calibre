@@ -16,7 +16,7 @@
 | `plugin/bookshelf.py` | Flat Adwaita colours for the bookshelf view |
 | `plugin/layoutmenu.py` | Layout popup as a popover |
 | `plugin/metadata.py` | Edit metadata: one surface, top-aligned form, dimmed row buttons, sort-state icons, format icon size, cover card |
-| `plugin/statusbar.py` | Status bar text without the version banner |
+| `plugin/statusbar.py` | Status bar hidden by default (pref `show_status_bar`, ☰ entry), header-bar jobs spinner while hidden, status text without the version banner |
 | `plugin/viewer.py` | Palettes and "System" colour scheme for the e-book viewer |
 | `plugin/config.py` | The *Customize plugin* dialog: icon set install/restore, integrated title bar, viewer |
 | `plugin/images/` | Adwaita SVGs recoloured at runtime (arrows, check marks, window buttons, view switcher, sidebar toggles); `cover-browser-symbolic.svg` is drawn for this plugin |
@@ -58,6 +58,12 @@
   Layout button is pinned hidden (`setVisible` overridden on the instance, since calibre
   re-shows it from Python when layout prefs change); ☰ → *Layout…* opens calibre's
   `LayoutMenu` and moves its inner card under the header bar at the right.
+- **Status bar.** Hidden after the header bar merges (`statusbar.apply`, pref `show_status_bar`,
+  default off; kept visible if the merge fails, since ☰ is then missing). ☰ → *Status bar* is a
+  checkable entry that saves the pref and re-reads the bar on `aboutToShow`. The jobs spinner
+  (`adwaita_jobs_button`, calibre's `ProgressIndicator`) follows `job_manager.job_added` /
+  `job_done`, connected after calibre's `JobsButton`, whose `jobs()` count and `toggle()` (the
+  Jobs list) it reuses; it shows only while jobs run and the bar is hidden.
 - **Toolbars & menus preferences.** Invisible actions (this plugin's, any plugin's) must list
   `searchbar` in `dont_add_to`, or that page crashes on `None.replace`. Its Preferences check
   accepts the main menu while the header bar is merged.
@@ -135,7 +141,7 @@ scripts/dev/run.sh before dark plain      # same, without the plugin
 ONLY=main,menu WIDTH=1450 scripts/dev/run.sh x dark
 ```
 
-Steps in `scripts/dev/shots/main.py`: `main`, `focus`, `statusbar`, `hover`, `layoutmenu`,
+Steps in `scripts/dev/shots/main.py`: `main`, `jobsbutton` (hidden status bar, ☰ entry, jobs spinner), `focus`, `statusbar`, `hover`, `layoutmenu`,
 `scrolled`, `sidebar`, `perf` (times grid and window repaints), `edges` (lists widgets at the
 header's edge), `toggles` (hides/shows panes), `menu`, `menus` (every menu), `grid`, `prefs`,
 `metadata`, `news`, `details` (scrolled book description), `sidetoggle` (header-bar sidebar
@@ -151,9 +157,10 @@ the dev instance runs with `flatpak run --unshare=network`. A fresh profile also
 `calibre-debug -e scripts/dev/icons_test.py -- <zip> $PWD install`.
 
 **Smoke gate** (`scripts/smoke.sh`). CI cannot run calibre, so the Qt layer is checked locally:
-the harness steps `views`, `toggles`, `prefcheck`, `edges` and `perf` assert behaviour (`SMOKE ok`
+the harness steps `jobsbutton`, `views`, `toggles`, `prefcheck`, `edges` and `perf` assert behaviour (`SMOKE ok`
 / `SMOKE FAIL` lines; the run exits non-zero on any failure): the view switcher follows clicks and
-shortcuts and the header bar does not move, hidden panes free their space and come back (also
+shortcuts and the header bar does not move, the status bar starts hidden and ☰ → *Status bar*
+toggles and saves it, the jobs spinner shows exactly while a job runs with the bar hidden, hidden panes free their space and come back (also
 through the header bar's sidebar toggles, which must follow the panes), the
 toolbar saves without Preferences, the book area starts right under the header bar with no strip
 in between, and a grid repaint stays within `SMOKE_FRAME_BUDGET_MS` (default 30). Run it before

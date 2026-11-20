@@ -6,6 +6,13 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- The status bar is hidden by default, as in other GNOME apps (this replaces the separate
+  *Hide Statusbar* plugin by Bennett Kanuka). ☰ → *Status bar* shows it again and is remembered.
+  While it is hidden, running jobs show as a spinner in the header bar, before the book-details
+  toggle; clicking it opens the Jobs list.
+
 ## [0.2.1] - 2026-11-19
 
 ### Fixed

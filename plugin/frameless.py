@@ -248,7 +248,7 @@ class Frame(QObject):
     def filter(self, obj, ev):
         t = ev.type()
         if t in (QEvent.Type.Show, QEvent.Type.Hide) and obj is not self.gui and obj is self.gui.statusBar():
-            # The status bar can be toggled at runtime (Layout, Hide Statusbar plugin); which
+            # The status bar can be toggled at runtime (main menu, statusbar.py); which
             # widget carries the rounded bottom corners changes with it.
             from qt.core import QTimer
             QTimer.singleShot(0, self.update_mask)
