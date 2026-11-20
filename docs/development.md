@@ -64,7 +64,11 @@
   calibre's Preferences menu (`iactions['Preferences'].preferences_menu`, which ☰ shows), in the
   submenu holding `action_map['Look & Feel']` (Interface). calibre builds those submenus in its
   own `initialization_complete`, possibly after ours, so the entry is placed on the menu's first
-  `aboutToShow`. It saves the pref and re-reads the bar on the submenu's `aboutToShow`. The jobs
+  `aboutToShow`. It saves the pref and re-reads the bar on the submenu's `aboutToShow`. Its
+  shortcut (Ctrl+Shift+S, `statusbar.SHORTCUT_ID`) is registered with `gui.keyboard` in our
+  `initialization_complete`; calibre assigns keys in `keyboard.finalize()` right after all
+  plugins' `initialization_complete`. The action is added to the main window so the key works
+  with the menu closed, and it toggles from the bar's own state, not the (then stale) check mark. The jobs
   button (`adwaita_jobs_button`) follows `job_manager.job_added` / `job_done`, connected after
   calibre's `JobsButton`, whose `jobs()` count and `toggle()` (the Jobs list) it reuses; it shows
   only while jobs run and the bar is hidden.
@@ -151,7 +155,7 @@ scripts/dev/run.sh before dark plain      # same, without the plugin
 ONLY=main,menu WIDTH=1450 scripts/dev/run.sh x dark
 ```
 
-Steps in `scripts/dev/shots/main.py`: `main`, `jobsbutton` (hidden status bar, Preferences → Interface entry, jobs spinner), `spinner` (paint gaps and cost), `focus`, `statusbar`, `hover`, `layoutmenu`,
+Steps in `scripts/dev/shots/main.py`: `main`, `jobsbutton` (hidden status bar, Preferences → Interface entry, Ctrl+Shift+S, jobs spinner; `run.sh` clears `show_status_bar` before each run so the default is what is tested), `spinner` (paint gaps and cost), `focus`, `statusbar`, `hover`, `layoutmenu`,
 `scrolled`, `sidebar`, `perf` (times grid and window repaints), `edges` (lists widgets at the
 header's edge), `toggles` (hides/shows panes), `menu`, `menus` (every menu), `grid`, `prefs`,
 `metadata`, `news`, `details` (scrolled book description), `sidetoggle` (header-bar sidebar

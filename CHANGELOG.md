@@ -10,7 +10,8 @@ All notable changes to this project are documented here. The format follows
 
 - The status bar is hidden by default, as in other GNOME apps (this replaces the separate
   *Hide Statusbar* plugin by Bennett Kanuka). Preferences → Interface → *Show status bar* (in
-  the ☰ menu and on calibre's Preferences button) shows it again and is remembered. While it is
+  the ☰ menu and on calibre's Preferences button) or Ctrl+Shift+S, the old plugin's shortcut
+  (changeable in Preferences → Shortcuts), shows it again and is remembered. While it is
   hidden, running jobs show as libadwaita's spinner in the header bar, before the book-details
   toggle; clicking it opens the Jobs list. The spinner is ported from libadwaita (continuous
   motion, a faint track), not calibre's, whose arc pauses and then swings round in jumps.

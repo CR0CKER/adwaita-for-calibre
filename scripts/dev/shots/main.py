@@ -502,6 +502,15 @@ class Shots(InterfaceAction):
             jm.job_done.emit(0)
             self.check(b.isHidden(), 'jobs button hidden when the last job ends')
             self.check(not spinner.running(), 'spinner stops when the last job ends')
+            # Ctrl+Shift+S, the Hide Statusbar plugin's shortcut, through calibre's keyboard manager.
+            keys = [k.toString() for k in gui.keyboard.keys_map.get('adwaita toggle status bar', ())]
+            self.check(keys == ['Ctrl+Shift+S'], f'status bar shortcut is Ctrl+Shift+S ({keys})')
+            self.check(entry in gui.actions(), 'shortcut works with the menu closed')
+            sb.setVisible(True)  # shown by something else: the entry's check mark is stale
+            entry.trigger()
+            self.check(sb.isHidden(), 'shortcut toggles from the bar itself, not a stale check mark')
+            self.check(prefs()['show_status_bar'] is False and not entry.isChecked(),
+                       'shortcut saves the choice and updates the check mark')
             self.next()
         self.later(600, shown)
 

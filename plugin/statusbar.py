@@ -12,6 +12,9 @@ calibre's StatusBar._set_label (calibre/gui2/init.py), minus the banner.
 """
 
 SPINNER_SIZE = 16  # the header bar's icon size (main.GNOME_ICON_SIZE)
+# The Hide Statusbar plugin's shortcut; calibre's keyboard manager owns it (Preferences -> Shortcuts).
+SHORTCUT_ID = 'adwaita toggle status bar'
+SHORTCUT_KEYS = ('Ctrl+Shift+S',)
 
 
 def _label(self):
@@ -101,7 +104,10 @@ def jobs_button(gui, parent):
 
 def menu_entry(gui):
     """Checkable "Show status bar" in calibre's Preferences menu, Interface section (the ☰ main
-    menu shows the same menu). Saves the pref and shows or hides the bar."""
+    menu shows the same menu), also on Ctrl+Shift+S. Saves the pref and shows or hides the bar.
+
+    Call from initialization_complete: calibre assigns registered shortcuts right after every
+    plugin's initialization_complete (keyboard.finalize)."""
     ia = gui.iactions.get('Preferences')
     pm = getattr(ia, 'preferences_menu', None) if ia is not None else None
     if pm is None or gui.statusBar() is None:
@@ -113,9 +119,13 @@ def menu_entry(gui):
     a.setObjectName('adwaita_show_status_bar')
     a.setCheckable(True)
 
-    def toggled(checked):
-        prefs()['show_status_bar'] = checked
-        apply(gui, checked)
+    def toggled(*args):
+        # From the bar itself, not the check mark: with the menu closed (the shortcut) the mark
+        # may be stale.
+        show = gui.statusBar().isHidden()
+        prefs()['show_status_bar'] = show
+        apply(gui, show)
+        sync()
 
     def sync():
         # Follow the bar itself (also when something else toggles it) without saving the pref.
@@ -138,6 +148,11 @@ def menu_entry(gui):
             return
 
     a.triggered.connect(toggled)
+    gui.addAction(a)  # the shortcut works while the menu is closed
+    keyboard = getattr(gui, 'keyboard', None)
+    if keyboard is not None:
+        keyboard.register_shortcut(SHORTCUT_ID, 'Show or hide the status bar',
+                                   default_keys=SHORTCUT_KEYS, action=a, group='Adwaita for calibre')
     pm.aboutToShow.connect(place)
     place()
     sync()

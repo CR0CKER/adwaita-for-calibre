@@ -32,6 +32,12 @@ g = os.path.join(os.path.dirname(path), 'global.py.json')
 gd = json.load(open(g)) if os.path.exists(g) else {}
 gd['library_path'] = lib
 open(g, 'w').write(json.dumps(gd, indent=2))
+# The status bar's default (hidden) is under test: no choice left over from an earlier run.
+ap = os.path.join(os.path.dirname(path), 'plugins', 'adwaita_for_calibre.json')
+if os.path.exists(ap):
+    ad = json.load(open(ap))
+    if ad.pop('show_status_bar', None) is not None:
+        open(ap, 'w').write(json.dumps(ad, indent=2))
 PY
 [ -e "$CFG/dynamic.pickle.json" ] || run --command=calibre-debug com.calibre_ebook.calibre \
     -c "from calibre.utils.config import dynamic; dynamic.set('welcome_wizard_was_run', True)" >/dev/null
