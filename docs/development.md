@@ -162,6 +162,25 @@ header's edge), `toggles` (hides/shows panes), `menu`, `menus` (every menu), `gr
 toggles), `covertoggle` (cover-browser toggle), `slide` (pane slide; `SLIDE_MID_MS`, `SLIDE_LIST`), `coverroom` (details cover shadow
 not clipped), `mdcheck` (Edit metadata tidy-up; needs a selected book, so run after `main`), `flip` (live light/dark switch), `views`, `closebtn`, `prefcheck`.
 
+**Other calibre setups** (`configs` step, not in `smoke.sh` yet). It switches calibre live, the
+way its preferences do (`gprefs` + `bars_manager.init_bars()` / `update_bars()` /
+`apply_settings()`), through a classic menu bar, a bottom toolbar (`action-layout-toolbar-child`,
+with and without the status bar), every `toolbar_icon_size` × `toolbar_text`, window widths
+1200/1000/800, Donate in the toolbar, extra search-row actions, narrow layout, Quickview, and a
+connected device (default and a long device toolbar). Each setup prints a `CFG {json}` line
+(header, menu bar, toolbars with hidden actions and the overflow button, RevealBar, search width,
+labelled header buttons), saves `cfg-<setup>.png`, checks that the toolbars stay in the header with
+nothing hidden, that header buttons are icon-only, that the device reveal band stays inside the
+header, and (integrated title bar) that the rounded corners stay transparent, then restores every
+pref it changed (unset ones are unset again).
+
+    ADWAITA_SMOKE=1 INTEGRATED=1 CONFIGS_DEVICE=1 TAIL=100000 ONLY=main,configs \
+        scripts/dev/run.sh cfg dark          # add `plain` for stock calibre, for comparison
+
+`INTEGRATED=1` turns the integrated title bar on for that run (otherwise off). `CONFIGS_DEVICE=1`
+makes `.dev/device/` (a copy of one dev-library EPUB) and connects to it as a device with calibre's
+*Connect to folder*; no real device is involved.
+
 `run.sh` uses a throwaway profile (`.dev/config`, `.dev/library`) and never touches the real
 calibre profile. Build the library with `calibre-debug -e scripts/dev/mklib.py -- .dev/library`
 and, for scrolling tests, add more with `scripts/dev/more_books.py`. calibre's single-instance

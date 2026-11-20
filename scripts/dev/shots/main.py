@@ -44,7 +44,7 @@ class Shots(InterfaceAction):
             ('menus', self.menus), ('grid', self.grid),
             ('prefs', self.prefs), ('metadata', self.metadata), ('news', self.news),
             ('flip', self.flip), ('views', self.views), ('closebtn', self.closebtn),
-            ('prefcheck', self.prefcheck), ('quit', self.quit),
+            ('prefcheck', self.prefcheck), ('configs', self.configs), ('quit', self.quit),
         ]
         QTimer.singleShot(int(os.environ.get('ADWAITA_SHOT_DELAY', '5000')), self.next)
 
@@ -844,6 +844,241 @@ class Shots(InterfaceAction):
         if b is not None:
             b.click()
         self.later(8000, lambda: (print('CLOSEBTN still running', flush=True), self.next()))
+
+    # --- calibre configurations other than the dev profile's (scripts/dev/configs.md) ----------
+
+    def cfg_geom(self, w):
+        from qt.core import QPoint
+        p = w.mapTo(self.gui, QPoint(0, 0))
+        return [p.x(), p.y(), w.width(), w.height()]
+
+    def cfg_measure(self, tag, shot=True):
+        """Print one CFG line of geometry for the header and everything calibre may add around
+        it, check the invariants, and save a screenshot."""
+        import json
+
+        from qt.core import QToolBar, QToolButton
+        gui = self.gui
+        hb = gui.search_bar
+        bm = gui.bars_manager
+        mb = gui.menuBar()
+        visible = lambda w: w is not None and w.isVisible()  # noqa: E731
+        bars = []
+        for i, b in enumerate(bm.main_bars + bm.child_bars):
+            if not b.isVisible():
+                continue
+            clipped = []
+            for t in b.findChildren(QToolButton):
+                if t.isVisible() and t.objectName() != 'qt_toolbar_ext_button':
+                    hint = t.sizeHint()
+                    if t.width() < hint.width() - 1 or t.height() < hint.height() - 1:
+                        clipped.append(t.text() or t.toolTip())
+            ext = b.findChild(QToolButton, 'qt_toolbar_ext_button')
+            hidden = []
+            for a in b.actions():
+                if a.isSeparator() or not a.isVisible():
+                    continue
+                w = b.widgetForAction(a)
+                if w is None or not w.isVisible():
+                    hidden.append(a.text().replace('&', ''))
+            bars.append({'hidden': hidden, 'ext': self.cfg_geom(ext) if visible(ext) else None,
+                         'bar': ['library', 'device', 'child'][i], 'in_header': b.parent() is hb,
+                         'geom': self.cfg_geom(b), 'icon': b.iconSize().width(),
+                         'style': int(b.toolButtonStyle().value), 'clipped': clipped,
+                         'overflow': visible(ext)})
+        stray = [type(t).__name__ for t in gui.findChildren(QToolBar)
+                 if t.isVisible() and t not in bm.main_bars + bm.child_bars]
+        rb = bm.reveal_bar
+        wbtn = [self.cfg_geom(b) for b in hb.findChildren(QToolButton, 'adwaita_window_button')
+                if b.isVisible()]
+        d = {
+            'tag': tag, 'window': [gui.width(), gui.height()], 'header': self.cfg_geom(hb),
+            'menubar': self.cfg_geom(mb) if visible(mb) else None,
+            'status': self.cfg_geom(gui.statusBar()) if visible(gui.statusBar()) else None,
+            'bars': bars, 'stray_toolbars': stray,
+            'reveal': self.cfg_geom(rb) if rb.isVisible() else None,
+            'search_w': gui.search.width() if visible(gui.search) else 0,
+            'labelled': sorted({t.text().replace('&', '') for t in hb.findChildren(QToolButton)
+                                if t.isVisible() and t.text() and t.parent() not in bm.main_bars
+                                and t.toolButtonStyle() != Qt.ToolButtonStyle.ToolButtonIconOnly}),
+            'window_buttons': wbtn,
+            'central': self.cfg_geom(gui.centralWidget()),
+        }
+        print('CFG', json.dumps(d), flush=True)
+        self.check(hb.isVisible(), f'{tag}: header bar visible')
+        hr = d['header']
+        if d['reveal'] is not None:
+            rx, ry, rw, rh = d['reveal']
+            self.check(rx >= hr[0] and ry >= hr[1] and rx + rw <= hr[0] + hr[2] and ry + rh <= hr[1] + hr[3],
+                       f'{tag}: device reveal band inside the header bar ({d["reveal"]} vs {hr})')
+        self.check(not d['labelled'], f'{tag}: header buttons icon-only (labelled: {d["labelled"]})')
+        for bar in bars:
+            if bar['bar'] != 'child':
+                self.check(bar['in_header'], f'{tag}: {bar["bar"]} toolbar inside the header bar')
+                self.check(not bar['hidden'],
+                           f'{tag}: no {bar["bar"]} buttons hidden in the overflow {bar["hidden"]}')
+            self.check(not bar['clipped'], f'{tag}: no clipped {bar["bar"]} buttons {bar["clipped"]}')
+        if shot:
+            self.save(gui, 'cfg-' + tag)
+        return d
+
+    def cfg_corners(self, tag):
+        """Integrated title bar: pixels in the four areas outside the rounded corners must match
+        the baseline (shadow only); a square bar painted there differs."""
+        frame = getattr(self.gui, '_adwaita_frame', None)
+        if frame is None or getattr(frame, 'header', None) is None or frame.tight():
+            return
+        img = self.gui.grab().toImage()
+        dpr = img.devicePixelRatio()
+        path = frame.corner_path()
+        r = path.boundingRect()
+        px = []
+        y = r.top()
+        while y < r.bottom():
+            x = r.left()
+            while x < r.right():
+                from qt.core import QPointF
+                if path.contains(QPointF(x + 0.5, y + 0.5)):
+                    px.append(img.pixel(int(x * dpr), int(y * dpr)))
+                x += 1
+            y += 1
+        if tag == 'baseline':
+            self.cfg_corner_base = px
+            return
+        base = getattr(self, 'cfg_corner_base', None)
+        if base is None or len(base) != len(px):
+            print('CFG corners', tag, 'no comparable baseline', flush=True)
+            return
+        # Compare transparency, not colour: the anti-aliased edge takes the colour of whatever
+        # sits in the corner (a toolbar instead of a pane), but must stay as transparent.
+        diff = sum(1 for a, b in zip(base, px, strict=True) if abs((a >> 24) - (b >> 24)) > 8)
+        self.check(diff == 0,
+                   f'{tag}: rounded corners intact ({diff} of {len(px)} corner pixels less transparent)')
+
+    def configs(self):
+        """Switch calibre through toolbar / menu bar / device setups live, as its preferences do,
+        measuring and screenshotting each, then restore. ONLY=configs; CFG lines in the log."""
+        from calibre.gui2 import gprefs
+        gui = self.gui
+        bm = gui.bars_manager
+        # (set in the profile?, value): keys calibre only has as defaults must end up unset again.
+        saved = {k: (k in gprefs, gprefs[k]) for k in (
+            'toolbar_icon_size', 'toolbar_text', 'action-layout-toolbar', 'action-layout-toolbar-device',
+            'action-layout-toolbar-child', 'action-layout-menubar', 'action-layout-menubar-device',
+            'action-layout-searchbar')}
+        size0 = (gui.width(), gui.height())
+        device_dir = os.environ.get('ADWAITA_DEVICE_DIR', '')
+
+        def setp(key, value):
+            gprefs[key] = value
+
+        def orig(key):
+            return saved[key][1]
+
+        def rebuild():
+            bm.init_bars()
+            bm.update_bars()
+            bm.apply_settings()
+
+        def restore():
+            for k, (present, v) in saved.items():
+                if present:
+                    gprefs[k] = v
+                elif k in gprefs:
+                    del gprefs[k]
+            rebuild()
+            gui.resize(*size0)
+
+        steps = []
+
+        def add(tag, apply, settle=900, after=None):
+            steps.append((tag, apply, settle, after))
+
+        add('baseline', lambda: None)
+        add('menubar', lambda: (setp('action-layout-menubar', ('Add Books', 'Edit Metadata', 'Preferences')),
+                                rebuild()))
+        add('menubar-off', lambda: (setp('action-layout-menubar', orig('action-layout-menubar')), rebuild()))
+        add('childbar', lambda: (setp('action-layout-toolbar-child', ('Add Books', 'View', 'Convert Books')),
+                                 rebuild()))
+        add('childbar+status', lambda: gui.statusBar().setVisible(True))
+        add('childbar-off', lambda: (gui.statusBar().setVisible(False),
+                                     setp('action-layout-toolbar-child', orig('action-layout-toolbar-child')),
+                                     rebuild()))
+        for size in ('small', 'mid-small', 'medium', 'large', 'off'):
+            for text in ('never', 'auto', 'always'):
+                add(f'tb-{size}-{text}', lambda size=size, text=text: (
+                    setp('toolbar_icon_size', size), setp('toolbar_text', text), bm.apply_settings()),
+                    settle=500)
+        add('tb-restore', lambda: (setp('toolbar_icon_size', orig('toolbar_icon_size')),
+                                   setp('toolbar_text', orig('toolbar_text')), bm.apply_settings()))
+        for w in (1200, 1000, 800):
+            add(f'width-{w}', lambda w=w: gui.resize(w, size0[1]))
+        add('width-restore', lambda: gui.resize(*size0))
+        donate = tuple(orig('action-layout-toolbar')) + ('Donate',)
+        add('donate', lambda: (setp('action-layout-toolbar', donate), rebuild()))
+        add('searchbar-extra', lambda: (
+            setp('action-layout-toolbar', orig('action-layout-toolbar')),
+            setp('action-layout-searchbar', ('Sort By', 'Mark Books', 'Pick Random Book', 'Quickview')),
+            rebuild()))
+        add('searchbar-restore', lambda: (setp('action-layout-searchbar', orig('action-layout-searchbar')),
+                                          rebuild()))
+        add('narrow-layout', lambda: gui.layout_container.change_layout(gui, False), settle=1200)
+        add('wide-layout', lambda: gui.layout_container.change_layout(gui, True), settle=1200)
+        add('quickview', lambda: (gui.library_view.select_rows([0]),
+                                  gui.iactions['Quickview'].qaction.trigger()), settle=1500)
+        add('quickview-off', lambda: gui.iactions['Quickview'].qaction.trigger())
+        if device_dir:
+            nils = ('Add Books', 'Fetch News', 'Location Manager', 'Browse Notes', 'Browse Annotations', None,
+                    'Preferences', 'Layout Actions')
+            for variant, layout in (('default', orig('action-layout-toolbar-device')), ('nils', nils)):
+                add(f'device-{variant}-connect', lambda layout=layout: (
+                    setp('action-layout-toolbar-device', layout), rebuild(),
+                    gui.connect_to_folder_named(device_dir)), settle=0, after='reveal')
+                add(f'device-{variant}', lambda: None, settle=2500)
+                lm = gui.location_manager
+                add(f'device-{variant}-view', lambda lm=lm: lm._location_selected('main'), settle=1500)
+                add(f'device-{variant}-library', lambda: gui.location_manager._location_selected('library'),
+                    settle=1000)
+                add(f'device-{variant}-ejected', lambda: gui.disconnect_mounted_device(), settle=2500)
+        add('restored', restore)
+
+        def run():
+            if not steps:
+                self.next()
+                return
+            tag, apply, settle, after = steps.pop(0)
+            try:
+                apply()
+            except Exception:
+                traceback.print_exc()
+                self.check(False, f'{tag}: applying the setup raised')
+
+            def measure():
+                try:
+                    self.cfg_measure(tag)
+                    self.cfg_corners(tag)
+                except Exception:
+                    traceback.print_exc()
+                run()
+
+            if after == 'reveal':
+                # Catch calibre's RevealBar mid-animation: poll until it shows (device mounted).
+                rb = bm.reveal_bar
+                deadline = [40]
+
+                def poll():
+                    deadline[0] -= 1
+                    if rb.isVisible():
+                        self.later(250, lambda: (self.cfg_measure(tag + '-reveal'), run()))
+                    elif deadline[0] <= 0:
+                        print('CFG', tag, 'reveal bar never showed', flush=True)
+                        run()
+                    else:
+                        self.later(100, poll)
+                poll()
+            else:
+                self.later(settle, measure)
+        run()
 
     def quit(self):
         if os.environ.get('ADWAITA_SMOKE'):

@@ -33,16 +33,27 @@ gd = json.load(open(g)) if os.path.exists(g) else {}
 gd['library_path'] = lib
 open(g, 'w').write(json.dumps(gd, indent=2))
 # The status bar's default (hidden) is under test: no choice left over from an earlier run.
+# INTEGRATED=1 turns the integrated title bar on for this run; unset means the default (off).
 ap = os.path.join(os.path.dirname(path), 'plugins', 'adwaita_for_calibre.json')
-if os.path.exists(ap):
-    ad = json.load(open(ap))
-    if ad.pop('show_status_bar', None) is not None:
-        open(ap, 'w').write(json.dumps(ad, indent=2))
+ad = json.load(open(ap)) if os.path.exists(ap) else {}
+ad.pop('show_status_bar', None)
+if os.environ.get('INTEGRATED'):
+    ad['integrated_titlebar'] = True
+else:
+    ad.pop('integrated_titlebar', None)
+os.makedirs(os.path.dirname(ap), exist_ok=True)
+open(ap, 'w').write(json.dumps(ad, indent=2))
 PY
+# A throwaway "device" for the configs step: a folder calibre connects to (Connect to folder).
+DEVICE="$DEV/device"
+if [ -n "${CONFIGS_DEVICE:-}" ]; then
+  rm -rf -- "$DEVICE"; mkdir -p "$DEVICE"
+  find "$DEV/library" -name '*.epub' -print -quit | xargs -r -I{} cp -- {} "$DEVICE/"
+fi
 [ -e "$CFG/dynamic.pickle.json" ] || run --command=calibre-debug com.calibre_ebook.calibre \
     -c "from calibre.utils.config import dynamic; dynamic.set('welcome_wizard_was_run', True)" >/dev/null
 run --env=ADWAITA_SHOT_DIR="$DEV/shots" --env=ADWAITA_SHOT_TAG="$TAG" \
     --env=ADWAITA_SHOT_ONLY="${ONLY:-}" --env=ADWAITA_SHOT_WIDTH="${WIDTH:-0}" --env=ADWAITA_CALIBRE_DEBUG=1 \
-    --env=ADWAITA_SMOKE="${ADWAITA_SMOKE:-}" --env=ADWAITA_SLIDE_TIMING="${ADWAITA_SLIDE_TIMING:-}" --env=SLIDE_LIST="${SLIDE_LIST:-}" --env=SLIDE_MID_MS="${SLIDE_MID_MS:-}" --env=ADWAITA_TREE="${ADWAITA_TREE:-}" \
+    --env=ADWAITA_SMOKE="${ADWAITA_SMOKE:-}" --env=ADWAITA_SLIDE_TIMING="${ADWAITA_SLIDE_TIMING:-}" --env=SLIDE_LIST="${SLIDE_LIST:-}" --env=SLIDE_MID_MS="${SLIDE_MID_MS:-}" --env=ADWAITA_TREE="${ADWAITA_TREE:-}" --env=ADWAITA_DEVICE_DIR="${CONFIGS_DEVICE:+$DEVICE}" \
     com.calibre_ebook.calibre --with-library "$DEV/library" --no-update-check 2>&1 \
   | grep -vE 'QRhi|Vulkan|GPU vendor|^$' | tail -n "${TAIL:-40}"
