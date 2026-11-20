@@ -25,24 +25,51 @@ import json, sys, os
 path, mode, lib = sys.argv[1:]
 d = json.load(open(path)) if os.path.exists(path) else {}
 d['color_palette'] = mode
-d.setdefault('toolbar_text', 'never')
-d.setdefault('toolbar_icon_size', 'small')
+if os.environ.get('FIRSTRUN'):
+    # As a fresh calibre: its own toolbar defaults (Medium icons, text always), plugin not yet run.
+    d.pop('toolbar_text', None)
+    d.pop('toolbar_icon_size', None)
+    d.pop('search_tool_bar_shows_text', None)
+else:
+    d.setdefault('toolbar_text', 'never')
+    d.setdefault('toolbar_icon_size', 'small')
+    d.setdefault('search_tool_bar_shows_text', False)
 open(path, 'w').write(json.dumps(d, indent=2))
 g = os.path.join(os.path.dirname(path), 'global.py.json')
 gd = json.load(open(g)) if os.path.exists(g) else {}
 gd['library_path'] = lib
 open(g, 'w').write(json.dumps(gd, indent=2))
 # The status bar's default (hidden) is under test: no choice left over from an earlier run.
+# INTEGRATED=1 turns the integrated title bar on for this run; unset means the default (off).
 ap = os.path.join(os.path.dirname(path), 'plugins', 'adwaita_for_calibre.json')
-if os.path.exists(ap):
-    ad = json.load(open(ap))
-    if ad.pop('show_status_bar', None) is not None:
-        open(ap, 'w').write(json.dumps(ad, indent=2))
+ad = json.load(open(ap)) if os.path.exists(ap) else {}
+ad.pop('show_status_bar', None)
+if os.environ.get('FIRSTRUN'):
+    ad.pop('toolbar_adopted', None)
+    ad.pop('previous_toolbar', None)
+if os.environ.get('INTEGRATED'):
+    ad['integrated_titlebar'] = True
+else:
+    ad.pop('integrated_titlebar', None)
+os.makedirs(os.path.dirname(ap), exist_ok=True)
+open(ap, 'w').write(json.dumps(ad, indent=2))
 PY
+# A throwaway "device" for the configs step: a folder calibre connects to (Connect to folder).
+DEVICE="$DEV/device"
+if [ -n "${CONFIGS_DEVICE:-}" ]; then
+  rm -rf -- "$DEVICE"; mkdir -p "$DEVICE"
+  find "$DEV/library" -name '*.epub' -print -quit | xargs -r -I{} cp -- {} "$DEVICE/"
+fi
+# ICONS=1 installs the Adwaita icon set into the dev profile (as Customize plugin -> Use Adwaita
+# icons does), ICONS=0 restores calibre's; unset leaves the profile as it is.
+case "${ICONS:-}" in
+  1) run --command=calibre-debug com.calibre_ebook.calibre -e "$ROOT/scripts/dev/icons_test.py" -- "$ZIP" "$ROOT" install >/dev/null ;;
+  0) run --command=calibre-debug com.calibre_ebook.calibre -e "$ROOT/scripts/dev/icons_test.py" -- "$ZIP" "$ROOT" restore >/dev/null ;;
+esac
 [ -e "$CFG/dynamic.pickle.json" ] || run --command=calibre-debug com.calibre_ebook.calibre \
     -c "from calibre.utils.config import dynamic; dynamic.set('welcome_wizard_was_run', True)" >/dev/null
 run --env=ADWAITA_SHOT_DIR="$DEV/shots" --env=ADWAITA_SHOT_TAG="$TAG" \
     --env=ADWAITA_SHOT_ONLY="${ONLY:-}" --env=ADWAITA_SHOT_WIDTH="${WIDTH:-0}" --env=ADWAITA_CALIBRE_DEBUG=1 \
-    --env=ADWAITA_SMOKE="${ADWAITA_SMOKE:-}" --env=ADWAITA_SLIDE_TIMING="${ADWAITA_SLIDE_TIMING:-}" --env=SLIDE_LIST="${SLIDE_LIST:-}" --env=SLIDE_MID_MS="${SLIDE_MID_MS:-}" --env=ADWAITA_TREE="${ADWAITA_TREE:-}" \
+    --env=ADWAITA_SMOKE="${ADWAITA_SMOKE:-}" --env=ADWAITA_SLIDE_TIMING="${ADWAITA_SLIDE_TIMING:-}" --env=SLIDE_LIST="${SLIDE_LIST:-}" --env=SLIDE_MID_MS="${SLIDE_MID_MS:-}" --env=ADWAITA_TREE="${ADWAITA_TREE:-}" --env=ADWAITA_DEVICE_DIR="${CONFIGS_DEVICE:+$DEVICE}" --env=ADWAITA_FIRSTRUN="${FIRSTRUN:-}" \
     com.calibre_ebook.calibre --with-library "$DEV/library" --no-update-check 2>&1 \
   | grep -vE 'QRhi|Vulkan|GPU vendor|^$' | tail -n "${TAIL:-40}"

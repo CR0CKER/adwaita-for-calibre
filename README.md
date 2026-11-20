@@ -1,6 +1,6 @@
 # Adwaita for calibre
 
-Last updated: 2026-11-20 12:46 PM CET
+Last updated: 2026-11-20 02:39 PM CET
 
 [![ci](https://github.com/CR0CKER/adwaita-for-calibre/actions/workflows/ci.yml/badge.svg)](https://github.com/CR0CKER/adwaita-for-calibre/actions/workflows/ci.yml)
 [![License: GPL-3.0](https://img.shields.io/github/license/CR0CKER/adwaita-for-calibre)](LICENSE)
@@ -25,7 +25,8 @@ Layout, all actions, Help, Restart). Sidebar
 toggles at either end show and hide the tag browser and the book details pane, which slide in
 and out (Shift+Alt+T and Shift+Alt+D do the same). Split
 buttons look like GNOME's split buttons, "Small" toolbar icons are GNOME's 16 px, and
-Preferences can be removed from the toolbar since it lives in the main menu.
+Preferences can be removed from the toolbar since it lives in the main menu. Actions that don't
+fit in the header go into a ⋯ button after the last one that does.
 
 **GNOME controls throughout.** Rounded buttons and entries with the accent on the default button,
 check boxes, radio buttons, menus and popovers with libadwaita's outline and shadow, view-switcher
@@ -104,6 +105,12 @@ overrides you set for calibre). For a non-Flatpak calibre, start it with `QT_QPA
   which GNOME and the Flatpak sandbox provide.
 - calibre's own colour palette setting (Look & feel → *Adjust colors*) has no effect while the
   plugin is active.
+- On its first run the plugin changes three calibre settings once, so the header bar is GNOME's
+  size: Look & feel → Toolbar to *Small* icons without text, and Searching → *Show text in the
+  buttons of the search bar* off. You can change them back at any time, and the plugin won't
+  change them again; Customize plugin → **Restore calibre's look** puts back what you had.
+- When a device connects, calibre's sweep across the toolbar is off. With calibre's classic
+  menu bar switched on (Toolbars & menus → *The menubar*), it sits above the header bar.
 - Hidden panes (cover browser, Quickview, side panels) take no space, so they can no longer be
   dragged out from the window edge; open them from the Layout button or their shortcut.
 - Double-clicking the integrated title bar does not maximize the window (the window manager owns
@@ -146,9 +153,9 @@ build bundles its own Qt, so system Qt styles cannot load. See
 
 GPL-3.0, see [LICENSE](LICENSE). The icon set and indicator images are GNOME's Adwaita symbolic
 icons from adwaita-icon-theme 49.0 (LGPL-3.0-only or CC-BY-SA-3.0, GNOME Project), recoloured;
-the search field's cog is GNOME Settings' symbolic icon (gnome-control-center 49, CC0-1.0); nine
+the search field's cog is GNOME Settings' symbolic icon (gnome-control-center 49, CC0-1.0); ten
 symbols GNOME has no icon for (books, tag, ++, −−, text colour, superscript, subscript, heading,
-horizontal rule) and the cover-browser toggle's icon were drawn for this plugin in the same style
+horizontal rule, the AI sparkle) and the cover-browser toggle's icon were drawn for this plugin in the same style
 (GPL-3.0). Colour values are taken
 from libadwaita (LGPL-2.1-or-later).
 

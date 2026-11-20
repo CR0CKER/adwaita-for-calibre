@@ -279,14 +279,19 @@ class Frame(QObject):
         if t == QEvent.Type.Enter:
             self.gui.unsetCursor()
             return False
-        if obj is not self.header and obj not in self.gui.bars_manager.main_bars:
+        menu_bar = self.gui.menuBar()
+        if obj is not self.header and obj is not menu_bar and obj not in self.gui.bars_manager.main_bars:
             return False  # the window body: cursor reset only, never drag
-        # Header bar and its toolbars: drag to move, double-click to maximize. The window
-        # manager takes the pointer grab on the first press, so Qt never delivers a
-        # MouseButtonDblClick; detect the second press by time and distance instead.
+        # Header bar, its toolbars and calibre's optional menu bar above it: drag to move,
+        # double-click to maximize. The window manager takes the pointer grab on the first
+        # press, so Qt never delivers a MouseButtonDblClick; detect the second press by time and
+        # distance instead.
         if t == QEvent.Type.MouseButtonPress and ev.button() == Qt.MouseButton.LeftButton:
-            if obj.childAt(ev.position().toPoint()) is not None:
+            pos = ev.position().toPoint()
+            if obj.childAt(pos) is not None:
                 return False
+            if obj is menu_bar and menu_bar.actionAt(pos) is not None:
+                return False  # a menu title: open the menu
             from qt.core import QApplication
             now = ev.timestamp()
             gpos = ev.globalPosition()
@@ -298,9 +303,12 @@ class Frame(QObject):
                 self.toggle_maximized()
             else:
                 self.last_press = (now, gpos)
-                self.gui.windowHandle().startSystemMove()
+                self.start_move()
             return True
         return False
+
+    def start_move(self):
+        self.gui.windowHandle().startSystemMove()
 
     def toggle_maximized(self):
         if self.gui.isMaximized():
@@ -394,7 +402,7 @@ def install(gui, image_dir):
     header.installEventFilter(frame)
     for bar in gui.bars_manager.main_bars:
         bar.installEventFilter(frame)
-    for w in (gui.centralWidget(), gui.statusBar()):
+    for w in (gui.centralWidget(), gui.statusBar(), gui.menuBar()):
         if w is not None:
             w.installEventFilter(frame)
     if gui.statusBar() is not None:

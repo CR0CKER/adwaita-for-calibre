@@ -17,13 +17,14 @@
 | `plugin/layoutmenu.py` | Layout popup as a popover |
 | `plugin/metadata.py` | Edit metadata: one surface, top-aligned form, dimmed row buttons, sort-state icons, format icon size, cover card |
 | `plugin/statusbar.py` | Status bar hidden by default (pref `show_status_bar`, Preferences → Interface entry), header-bar jobs spinner while hidden, status text without the version banner |
+| `plugin/toolbarprefs.py` | First run: calibre's toolbar to Small / no text and the search-bar text off, once; restore. Qt-free and unit-tested |
 | `plugin/spin.py` | libadwaita's spinner geometry (ported from `adw-spinner-paintable.c`), Qt-free and unit-tested |
 | `plugin/viewer.py` | Palettes and "System" colour scheme for the e-book viewer |
 | `plugin/config.py` | The *Customize plugin* dialog: icon set install/restore, integrated title bar, viewer |
 | `plugin/images/` | Adwaita SVGs recoloured at runtime (arrows, check marks, window buttons, view switcher, sidebar toggles); `cover-browser-symbolic.svg` is drawn for this plugin |
 | `plugin/icons/` | **Generated** by `scripts/build_icons.py`; committed so the zip builds without calibre |
 | `icons/mapping.py` | calibre icon name → Adwaita symbolic icon (or `hicolor:` / `local:`), plus what stays |
-| `icons/extra/` | The nine symbols drawn for this plugin, plus GNOME Settings' cog (CC0, vendored so builds and CI need only adwaita-icon-theme) |
+| `icons/extra/` | The ten symbols drawn for this plugin (the AI sparkle among them), plus GNOME Settings' cog (CC0, vendored so builds and CI need only adwaita-icon-theme) |
 | `scripts/dev/` | Screenshot/measurement harness (dev-only plugin + `run.sh`), dev library builders, headless icon install |
 
 ## How calibre is hooked
@@ -46,6 +47,17 @@
 - **Plugin lifecycle.** `genesis()` runs before the main window exists (palette, style, frameless
   flags); `initialization_complete()` after it is shown (header bar, panes, shadows, status bar).
   The search row does not exist yet at `genesis()`.
+- **Toolbar overflow and first run.** The header has no spare width for calibre's default
+  toolbar (`headerdump`: the spacers are already 0 px). Qt's own overflow button is fixed at the
+  style's 12 px `PM_ToolBarExtensionExtent` and draws no icon here, so it is shrunk to 0 px
+  (`setMaximumWidth`) and `headerbar.overflow_button` adds a ⋯ that floats right after the last
+  visible button, with an empty slot of its width in the layout. Its menu lists the hidden
+  actions on `aboutToShow`; calibre's Donate is a widget in the toolbar, so its action is listed
+  instead. `toolbarprefs.adopt` switches calibre's toolbar to Small / no text and the search-bar
+  text off once (`toolbar_adopted`), remembering unset values as `None`; `restore` is part of
+  "Restore calibre's look". calibre's device `RevealBar.start` is a no-op under the plugin
+  (it used parent-relative geometry). The frame filter also drags on the menu bar's empty parts
+  (`QMenuBar.actionAt` is `None`), and the bottom toolbar gets `padding: 6px 8px`.
 - **Header bar.** The main toolbars (library and device; calibre shows one at a time) are moved
   into calibre's search row (`gui.search_bar`), which becomes the header bar. Sort and Group by
   keep their space when hidden (`setRetainSizeWhenHidden`), so switching views never moves
@@ -162,6 +174,40 @@ header's edge), `toggles` (hides/shows panes), `menu`, `menus` (every menu), `gr
 toggles), `covertoggle` (cover-browser toggle), `slide` (pane slide; `SLIDE_MID_MS`, `SLIDE_LIST`), `coverroom` (details cover shadow
 not clipped), `mdcheck` (Edit metadata tidy-up; needs a selected book, so run after `main`), `flip` (live light/dark switch), `views`, `closebtn`, `prefcheck`.
 
+**Other calibre setups** (`configs` step, the second pass of `smoke.sh`). It switches calibre live, the
+way its preferences do (`gprefs` + `bars_manager.init_bars()` / `update_bars()` /
+`apply_settings()`), through a classic menu bar, a bottom toolbar (`action-layout-toolbar-child`,
+with and without the status bar), every `toolbar_icon_size` × `toolbar_text`, window widths
+1200/1000/800, Donate in the toolbar, extra search-row actions, narrow layout, Quickview, and a
+connected device (default and a long device toolbar). Each setup prints a `CFG {json}` line
+(header, menu bar, toolbars with hidden actions and the overflow button, RevealBar, search width,
+labelled header buttons), saves `cfg-<setup>.png`, and checks:
+
+- the toolbars stay in the header; actions that don't fit are listed by the ⋯ button, which
+  shows exactly then, right after the last visible button, and Qt's own overflow button takes
+  no space;
+- header buttons are icon-only, unless calibre's search-bar text setting is on (`searchtext-on`),
+  when exactly the search-row buttons keep their text;
+- no device reveal band;
+- integrated title bar: the rounded corners stay transparent, an empty part of the menu bar
+  drags the window (`frame.start_move` is intercepted) and a menu title doesn't;
+- the bottom toolbar's buttons are inset at least 8 px.
+
+It then restores every pref it changed (unset ones are unset again). `headerdump` (dev only)
+prints every item of the header's layout with its width, size hints and policy.
+
+    ADWAITA_SMOKE=1 INTEGRATED=1 CONFIGS_DEVICE=1 TAIL=100000 ONLY=main,configs \
+        scripts/dev/run.sh cfg dark          # add `plain` for stock calibre, for comparison
+
+`INTEGRATED=1` turns the integrated title bar on for that run (otherwise off). `CONFIGS_DEVICE=1`
+makes `.dev/device/` (a copy of one dev-library EPUB) and connects to it as a device with calibre's
+*Connect to folder*; no real device is involved. `FIRSTRUN=1` starts as a fresh calibre (its own
+toolbar and search-bar text defaults, the plugin's first-run flag cleared); the `firstrun` step
+checks the switch to Small / no text and that `toolbarprefs.restore` unsets them again.
+`ICONS=1` installs the Adwaita icon set into the dev profile (as Customize plugin → *Use Adwaita
+icons* does), `ICONS=0` restores calibre's; unset leaves the profile as it is. `smoke.sh` runs
+with `ICONS=1`, so its screenshots show the icons users see.
+
 `run.sh` uses a throwaway profile (`.dev/config`, `.dev/library`) and never touches the real
 calibre profile. Build the library with `calibre-debug -e scripts/dev/mklib.py -- .dev/library`
 and, for scrolling tests, add more with `scripts/dev/more_books.py`. calibre's single-instance
@@ -177,11 +223,13 @@ shortcuts and the header bar does not move, the status bar starts hidden and Pre
 toggles and saves it, the jobs spinner shows exactly while a job runs with the bar hidden, hidden panes free their space and come back (also
 through the header bar's sidebar toggles, which must follow the panes), the
 toolbar saves without Preferences, the book area starts right under the header bar with no strip
-in between, and a grid repaint stays within `SMOKE_FRAME_BUDGET_MS` (default 30). Run it before
-every release and after touching the Qt modules.
+in between, and a grid repaint stays within `SMOKE_FRAME_BUDGET_MS` (default 30). A second pass
+runs `configs` with the integrated title bar and a folder device (see *Other calibre setups*).
+The first-run switch is checked separately: `FIRSTRUN=1 ONLY=main,firstrun scripts/dev/run.sh`.
+Run it before every release and after touching the Qt modules.
 
 **Type checking.** `mypy --strict` covers the modules that import neither calibre nor Qt
-(`plugin/adwaita.py`, `plugin/spin.py`, `icons/mapping.py`); the rest cannot be imported in CI. ruff and mypy are
+(`plugin/adwaita.py`, `plugin/spin.py`, `plugin/toolbarprefs.py`, `icons/mapping.py`); the rest cannot be imported in CI. ruff and mypy are
 hash-locked in `requirements-dev.txt`, compiled from `requirements-dev.in` with
 `uv pip compile --generate-hashes`.
 

@@ -32,7 +32,8 @@ class Shots(InterfaceAction):
         self.tag = os.environ.get('ADWAITA_SHOT_TAG', 'shot')
         self.only = set(filter(None, os.environ.get('ADWAITA_SHOT_ONLY', '').split(',')))
         self.steps = [
-            ('main', self.main), ('jobsbutton', self.jobsbutton), ('focus', self.focus),
+            ('main', self.main), ('firstrun', self.firstrun), ('jobsbutton', self.jobsbutton),
+            ('focus', self.focus),
             ('statusbar', self.statusbar), ('spinner', self.spinner), ('hover', self.hover),
             ('layoutmenu', self.layoutmenu), ('scrolled', self.scrolled),
             ('sidebar', self.sidebar), ('perf', self.perf),
@@ -44,7 +45,8 @@ class Shots(InterfaceAction):
             ('menus', self.menus), ('grid', self.grid),
             ('prefs', self.prefs), ('metadata', self.metadata), ('news', self.news),
             ('flip', self.flip), ('views', self.views), ('closebtn', self.closebtn),
-            ('prefcheck', self.prefcheck), ('quit', self.quit),
+            ('prefcheck', self.prefcheck), ('configs', self.configs), ('headerdump', self.headerdump),
+            ('quit', self.quit),
         ]
         QTimer.singleShot(int(os.environ.get('ADWAITA_SHOT_DELAY', '5000')), self.next)
 
@@ -455,6 +457,42 @@ class Shots(InterfaceAction):
               'normal', d.text_color(False, opt.palette).name(), flush=True)
         self.next()
 
+    def firstrun(self):
+        """FIRSTRUN=1 (run.sh): calibre at its own toolbar defaults, plugin never run before. The
+        plugin switches calibre's toolbar to Small icons without text, and the search-bar buttons
+        to no text, once, remembering they were unset; "Restore calibre's look"
+        (toolbarprefs.restore) unsets them again."""
+        if not os.environ.get('ADWAITA_FIRSTRUN'):
+            self.next()
+            return
+        from calibre.gui2 import gprefs
+        from calibre_plugins.adwaita_for_calibre.main import prefs
+        from qt.core import Qt as _Qt
+        from qt.core import QToolButton
+        p = prefs()
+        keys = ('toolbar_icon_size', 'toolbar_text', 'search_tool_bar_shows_text')
+        gnome = {'toolbar_icon_size': 'small', 'toolbar_text': 'never', 'search_tool_bar_shows_text': False}
+        self.check({k: gprefs[k] for k in keys if k in gprefs} == gnome,
+                   f'first run sets Small icons, no text ({ {k: gprefs.get(k) for k in keys} })')
+        labelled = [t for t in self.gui.search_bar.findChildren(QToolButton)
+                    if t.isVisible() and t.text() and t.parent() not in self.gui.bars_manager.main_bars
+                    and t.toolButtonStyle() != _Qt.ToolButtonStyle.ToolButtonIconOnly]
+        self.check(not labelled,
+                   f'first run: no labelled search-row buttons ({[t.text() for t in labelled]})')
+        self.check(p['toolbar_adopted'] is True, 'first run is remembered')
+        self.check(p['previous_toolbar'] == dict.fromkeys(keys),
+                   f'first run remembers all three were unset ({p["previous_toolbar"]})')
+        bar = self.gui.bars_manager.main_bars[0]
+        icon_only = bar.toolButtonStyle() == _Qt.ToolButtonStyle.ToolButtonIconOnly
+        self.check(bar.iconSize().width() == 16 and icon_only,
+                   f'header toolbar at 16 px, icon-only ({bar.iconSize().width()}, {bar.toolButtonStyle()})')
+        self.save(self.gui, 'firstrun')
+        from calibre_plugins.adwaita_for_calibre import toolbarprefs
+        toolbarprefs.restore(gprefs, p)
+        self.check(not any(k in gprefs for k in keys), 'restore unsets all three again')
+        self.check(p['toolbar_adopted'] is True, 'restore does not re-arm the first run')
+        self.next()
+
     def jobsbutton(self):
         # The status bar is hidden by default (pref show_status_bar); Preferences -> Interface ->
         # "Show status bar" brings it back; while it is hidden, running jobs show as a header-bar
@@ -844,6 +882,363 @@ class Shots(InterfaceAction):
         if b is not None:
             b.click()
         self.later(8000, lambda: (print('CLOSEBTN still running', flush=True), self.next()))
+
+    # --- calibre configurations other than the dev profile's (scripts/dev/configs.md) ----------
+
+    def cfg_geom(self, w):
+        from qt.core import QPoint
+        p = w.mapTo(self.gui, QPoint(0, 0))
+        return [p.x(), p.y(), w.width(), w.height()]
+
+    def cfg_measure(self, tag, shot=True):
+        """Print one CFG line of geometry for the header and everything calibre may add around
+        it, check the invariants, and save a screenshot."""
+        import json
+
+        from qt.core import QToolBar, QToolButton
+        gui = self.gui
+        hb = gui.search_bar
+        bm = gui.bars_manager
+        mb = gui.menuBar()
+        visible = lambda w: w is not None and w.isVisible()  # noqa: E731
+        bars = []
+        for i, b in enumerate(bm.main_bars + bm.child_bars):
+            if not b.isVisible():
+                continue
+            clipped = []
+            for t in b.findChildren(QToolButton):
+                if t.isVisible() and t.objectName() != 'qt_toolbar_ext_button':
+                    hint = t.sizeHint()
+                    if t.width() < hint.width() - 1 or t.height() < hint.height() - 1:
+                        clipped.append(t.text() or t.toolTip())
+            ext = b.findChild(QToolButton, 'qt_toolbar_ext_button')
+            hidden = []
+            for a in b.actions():
+                if a.isSeparator() or not a.isVisible():
+                    continue
+                w = b.widgetForAction(a)
+                if w is None or not w.isVisible():
+                    # calibre's Donate is a widget in the toolbar; the overflow lists its action.
+                    is_donate = b.donate_button is not None and w is b.donate_button
+                    hidden.append((b.donate_action if is_donate else a).text().replace('&', ''))
+            bars.append({'hidden': hidden, 'ext': self.cfg_geom(ext) if visible(ext) else None,
+                         'bar': ['library', 'device', 'child'][i], 'in_header': b.parent() is hb,
+                         'geom': self.cfg_geom(b), 'icon': b.iconSize().width(),
+                         'style': int(b.toolButtonStyle().value), 'clipped': clipped,
+                         'overflow': visible(ext)})
+        stray = [type(t).__name__ for t in gui.findChildren(QToolBar)
+                 if t.isVisible() and t not in bm.main_bars + bm.child_bars]
+        rb = bm.reveal_bar
+        wbtn = [self.cfg_geom(b) for b in hb.findChildren(QToolButton, 'adwaita_window_button')
+                if b.isVisible()]
+        d = {
+            'tag': tag, 'window': [gui.width(), gui.height()], 'header': self.cfg_geom(hb),
+            'menubar': self.cfg_geom(mb) if visible(mb) else None,
+            'status': self.cfg_geom(gui.statusBar()) if visible(gui.statusBar()) else None,
+            'bars': bars, 'stray_toolbars': stray,
+            'reveal': self.cfg_geom(rb) if rb.isVisible() else None,
+            'search_w': gui.search.width() if visible(gui.search) else 0,
+            'labelled': sorted({t.text().replace('&', '') for t in hb.findChildren(QToolButton)
+                                if t.isVisible() and t.text() and t.parent() not in bm.main_bars
+                                and t.toolButtonStyle() != Qt.ToolButtonStyle.ToolButtonIconOnly}),
+            'window_buttons': wbtn,
+            'central': self.cfg_geom(gui.centralWidget()),
+        }
+        print('CFG', json.dumps(d), flush=True)
+        self.check(hb.isVisible(), f'{tag}: header bar visible')
+        self.check(d['reveal'] is None, f'{tag}: no device reveal band ({d["reveal"]})')
+        from calibre.gui2 import gprefs
+        allowed = set()
+        if gprefs['search_tool_bar_shows_text']:  # calibre's own setting: those keep their text
+            allowed = {w.text().replace('&', '') for w in bm.search_tool_bar.search_tool_bar_widgets
+                       if isinstance(w, QToolButton) and w.isVisible() and w.text()}
+            self.check(bool(allowed) and set(d['labelled']) == allowed,
+                       f'{tag}: search-row buttons keep their text as calibre is set to ({d["labelled"]})')
+        else:
+            self.check(not d['labelled'], f'{tag}: header buttons icon-only (labelled: {d["labelled"]})')
+        for bar in bars:
+            if bar['bar'] != 'child':
+                self.check(bar['in_header'], f'{tag}: {bar["bar"]} toolbar inside the header bar')
+                self.cfg_overflow(tag, bar)
+            self.check(not bar['clipped'], f'{tag}: no clipped {bar["bar"]} buttons {bar["clipped"]}')
+        if shot:
+            self.save(gui, 'cfg-' + tag)
+        return d
+
+    def cfg_overflow(self, tag, bar):
+        """Toolbar actions that don't fit must stay reachable: the header's own overflow button
+        shows exactly while something is hidden, with a drawn icon, and its menu lists exactly
+        the hidden actions. Qt's own overflow button (drawn as nothing) takes no visible space."""
+        from qt.core import QToolButton
+        bm = self.gui.bars_manager
+        b = bm.main_bars[0 if bar['bar'] == 'library' else 1]
+        ob = getattr(b, '_adwaita_overflow', None)
+        if ob is None:
+            self.check(not bar['hidden'],
+                       f'{tag}: {bar["bar"]} buttons hidden with no overflow button {bar["hidden"]}')
+            return
+        shown = not ob.isHidden()
+        self.check(shown == bool(bar['hidden']),
+                   f'{tag}: overflow button shown exactly when buttons are hidden ({shown}, {bar["hidden"]})')
+        if shown:
+            self.check(not ob.icon().isNull(), f'{tag}: overflow button has an icon')
+            from qt.core import QPoint
+            right = max(w.mapTo(self.gui, QPoint(w.width(), 0)).x() for a in b.actions()
+                        if (w := b.widgetForAction(a)) is not None and w.isVisible())
+            gap = ob.mapTo(self.gui, QPoint(0, 0)).x() - right
+            self.check(0 <= gap <= 8,
+                       f'{tag}: overflow button right after the last visible button ({gap} px)')
+            menu = ob.menu()
+            menu.aboutToShow.emit()
+            listed = [a.text().replace('&', '') for a in menu.actions() if not a.isSeparator()]
+            want = [h for h in bar['hidden'] if h]
+            self.check(listed == want, f'{tag}: overflow menu lists the hidden buttons ({listed} vs {want})')
+        ext = b.findChild(QToolButton, 'qt_toolbar_ext_button')
+        if ext is not None and ext.isVisible():
+            self.check(ext.width() <= 1, f'{tag}: Qt overflow button takes no space ({ext.width()} px)')
+
+    def cfg_menubar_drag(self, tag):
+        """Integrated title bar: a press on an empty part of the menu bar moves the window; a
+        press on a menu title opens the menu instead."""
+        from qt.core import QEvent, QMouseEvent, QPoint, QPointF, Qt
+        gui = self.gui
+        frame = getattr(gui, '_adwaita_frame', None)
+        mb = gui.menuBar()
+        if frame is None or getattr(frame, 'header', None) is None or not mb.isVisible():
+            return
+        moves = []
+        orig = getattr(frame, 'start_move', None)
+        frame.start_move = lambda: moves.append(1)
+        try:
+            def press(pt):
+                ev = QMouseEvent(QEvent.Type.MouseButtonPress, QPointF(pt), QPointF(mb.mapToGlobal(pt)),
+                                 Qt.MouseButton.LeftButton, Qt.MouseButton.LeftButton,
+                                 Qt.KeyboardModifier.NoModifier)
+                frame.last_press = (0, None)
+                QApplication.sendEvent(mb, ev)
+                rel = QMouseEvent(QEvent.Type.MouseButtonRelease, QPointF(pt), QPointF(mb.mapToGlobal(pt)),
+                                  Qt.MouseButton.LeftButton, Qt.MouseButton.NoButton,
+                                  Qt.KeyboardModifier.NoModifier)
+                QApplication.sendEvent(mb, rel)
+            empty = QPoint(mb.width() - 20, mb.height() // 2)
+            press(empty)
+            self.check(len(moves) == 1, f'{tag}: empty menu bar area drags the window ({len(moves)} moves)')
+            first = mb.actionGeometry(mb.actions()[0]).center() if mb.actions() else None
+            if first is not None:
+                moves.clear()
+                press(first)
+                self.check(not moves, f'{tag}: a menu title does not drag the window')
+                if mb.activeAction() is not None:
+                    mb.activeAction().menu().close() if mb.activeAction().menu() else None
+        finally:
+            if orig is not None:
+                frame.start_move = orig
+            else:
+                del frame.start_move
+
+    def cfg_childbar_inset(self, tag):
+        """calibre's bottom toolbar: its first button clears the rounded corner, inset like the
+        header bar's (8 px)."""
+        from qt.core import QToolButton
+        cb = self.gui.bars_manager.child_bars[0]
+        btns = [t for t in cb.findChildren(QToolButton)
+                if t.isVisible() and t.objectName() != 'qt_toolbar_ext_button']
+        if not btns:
+            return
+        left = min(t.x() for t in btns)
+        self.check(left >= 8, f'{tag}: bottom toolbar buttons inset from the corner ({left} px)')
+
+    def cfg_corners(self, tag):
+        """Integrated title bar: pixels in the four areas outside the rounded corners must match
+        the baseline (shadow only); a square bar painted there differs."""
+        frame = getattr(self.gui, '_adwaita_frame', None)
+        if frame is None or getattr(frame, 'header', None) is None or frame.tight():
+            return
+        img = self.gui.grab().toImage()
+        dpr = img.devicePixelRatio()
+        path = frame.corner_path()
+        r = path.boundingRect()
+        px = []
+        y = r.top()
+        while y < r.bottom():
+            x = r.left()
+            while x < r.right():
+                from qt.core import QPointF
+                if path.contains(QPointF(x + 0.5, y + 0.5)):
+                    px.append(img.pixel(int(x * dpr), int(y * dpr)))
+                x += 1
+            y += 1
+        if tag == 'baseline':
+            self.cfg_corner_base = px
+            return
+        base = getattr(self, 'cfg_corner_base', None)
+        if base is None or len(base) != len(px):
+            print('CFG corners', tag, 'no comparable baseline', flush=True)
+            return
+        # Compare transparency, not colour: the anti-aliased edge takes the colour of whatever
+        # sits in the corner (a toolbar instead of a pane), but must stay as transparent.
+        diff = sum(1 for a, b in zip(base, px, strict=True) if abs((a >> 24) - (b >> 24)) > 8)
+        self.check(diff == 0,
+                   f'{tag}: rounded corners intact ({diff} of {len(px)} corner pixels less transparent)')
+
+    def configs(self):
+        """Switch calibre through toolbar / menu bar / device setups live, as its preferences do,
+        measuring and screenshotting each, then restore. ONLY=configs; CFG lines in the log."""
+        from calibre.gui2 import gprefs
+        gui = self.gui
+        bm = gui.bars_manager
+        # (set in the profile?, value): keys calibre only has as defaults must end up unset again.
+        saved = {k: (k in gprefs, gprefs[k]) for k in (
+            'toolbar_icon_size', 'toolbar_text', 'action-layout-toolbar', 'action-layout-toolbar-device',
+            'action-layout-toolbar-child', 'action-layout-menubar', 'action-layout-menubar-device',
+            'action-layout-searchbar', 'search_tool_bar_shows_text')}
+        size0 = (gui.width(), gui.height())
+        device_dir = os.environ.get('ADWAITA_DEVICE_DIR', '')
+
+        def setp(key, value):
+            gprefs[key] = value
+
+        def orig(key):
+            return saved[key][1]
+
+        def rebuild():
+            bm.init_bars()
+            bm.update_bars()
+            bm.apply_settings()
+
+        def restore():
+            for k, (present, v) in saved.items():
+                if present:
+                    gprefs[k] = v
+                elif k in gprefs:
+                    del gprefs[k]
+            rebuild()
+            gui.resize(*size0)
+
+        steps = []
+
+        def add(tag, apply, settle=900, after=None):
+            steps.append((tag, apply, settle, after))
+
+        add('baseline', lambda: None)
+        add('menubar', lambda: (setp('action-layout-menubar', ('Add Books', 'Edit Metadata', 'Preferences')),
+                                rebuild()))
+        add('menubar-off', lambda: (setp('action-layout-menubar', orig('action-layout-menubar')), rebuild()))
+        add('childbar', lambda: (setp('action-layout-toolbar-child', ('Add Books', 'View', 'Convert Books')),
+                                 rebuild()))
+        add('childbar+status', lambda: gui.statusBar().setVisible(True))
+        add('childbar-off', lambda: (gui.statusBar().setVisible(False),
+                                     setp('action-layout-toolbar-child', orig('action-layout-toolbar-child')),
+                                     rebuild()))
+        for size in ('small', 'mid-small', 'medium', 'large', 'off'):
+            for text in ('never', 'auto', 'always'):
+                add(f'tb-{size}-{text}', lambda size=size, text=text: (
+                    setp('toolbar_icon_size', size), setp('toolbar_text', text), bm.apply_settings()),
+                    settle=500)
+        add('tb-restore', lambda: (setp('toolbar_icon_size', orig('toolbar_icon_size')),
+                                   setp('toolbar_text', orig('toolbar_text')), bm.apply_settings()))
+        for w in (1200, 1000, 800):
+            add(f'width-{w}', lambda w=w: gui.resize(w, size0[1]))
+        add('width-restore', lambda: gui.resize(*size0))
+        donate = tuple(orig('action-layout-toolbar')) + ('Donate',)
+        add('donate', lambda: (setp('action-layout-toolbar', donate), rebuild()))
+        add('searchbar-extra', lambda: (
+            setp('action-layout-toolbar', orig('action-layout-toolbar')),
+            setp('action-layout-searchbar', ('Sort By', 'Mark Books', 'Pick Random Book', 'Quickview')),
+            rebuild()))
+        add('searchtext-on', lambda: (setp('search_tool_bar_shows_text', True), rebuild()))
+        add('searchtext-off', lambda: (setp('search_tool_bar_shows_text', orig('search_tool_bar_shows_text')),
+                                       rebuild()))
+        add('searchbar-restore', lambda: (setp('action-layout-searchbar', orig('action-layout-searchbar')),
+                                          rebuild()))
+        add('narrow-layout', lambda: gui.layout_container.change_layout(gui, False), settle=1200)
+        add('wide-layout', lambda: gui.layout_container.change_layout(gui, True), settle=1200)
+        add('quickview', lambda: (gui.library_view.select_rows([0]),
+                                  gui.iactions['Quickview'].qaction.trigger()), settle=1500)
+        add('quickview-off', lambda: gui.iactions['Quickview'].qaction.trigger())
+        if device_dir:
+            nils = ('Add Books', 'Fetch News', 'Location Manager', 'Browse Notes', 'Browse Annotations', None,
+                    'Preferences', 'Layout Actions')
+            for variant, layout in (('default', orig('action-layout-toolbar-device')), ('nils', nils)):
+                add(f'device-{variant}-connect', lambda layout=layout: (
+                    setp('action-layout-toolbar-device', layout), rebuild(),
+                    gui.connect_to_folder_named(device_dir)), settle=0, after='reveal')
+                add(f'device-{variant}', lambda: None, settle=2500)
+                lm = gui.location_manager
+                add(f'device-{variant}-view', lambda lm=lm: lm._location_selected('main'), settle=1500)
+                add(f'device-{variant}-library', lambda: gui.location_manager._location_selected('library'),
+                    settle=1000)
+                add(f'device-{variant}-ejected', lambda: gui.disconnect_mounted_device(), settle=2500)
+        add('restored', restore)
+
+        def run():
+            if not steps:
+                self.next()
+                return
+            tag, apply, settle, after = steps.pop(0)
+            try:
+                apply()
+            except Exception:
+                traceback.print_exc()
+                self.check(False, f'{tag}: applying the setup raised')
+
+            def measure():
+                try:
+                    self.cfg_measure(tag)
+                    self.cfg_corners(tag)
+                    if tag == 'menubar':
+                        self.cfg_menubar_drag(tag)
+                    if tag.startswith('childbar') and tag != 'childbar-off':
+                        self.cfg_childbar_inset(tag)
+                except Exception:
+                    traceback.print_exc()
+                run()
+
+            if after == 'reveal':
+                # 250 ms after the device mounts: mid-way through calibre's 1 s reveal sweep, if any.
+                deadline = [60]
+
+                def poll():
+                    deadline[0] -= 1
+                    if gui.location_manager.has_device:
+                        self.later(250, lambda: (self.cfg_measure(tag + '-reveal'), run()))
+                    elif deadline[0] <= 0:
+                        self.check(False, f'{tag}: the folder device never connected')
+                        run()
+                    else:
+                        self.later(100, poll)
+                poll()
+            else:
+                self.later(settle, measure)
+        run()
+
+    def headerdump(self):
+        """Every item of the header bar's layout: geometry, size hints and policy, plus each main
+        toolbar's overflow button (dev only: where the header's width goes)."""
+        from qt.core import QStyle, QToolButton
+        hb = self.gui.search_bar
+        lay = hb._layout
+        for i in range(lay.count()):
+            it = lay.itemAt(i)
+            w = it.widget()
+            g = it.geometry()
+            if w is None:
+                kind = 'spacer' if it.spacerItem() is not None else 'item'
+                print(f'HDR {i:2} {kind:28} x{g.x():5} w{g.width():4} hint{it.sizeHint().width():5} '
+                      f'stretch{lay.stretch(i)}', flush=True)
+                continue
+            name = (type(w).__name__ + ':' + w.objectName())[:28]
+            print(f'HDR {i:2} {name:28} x{g.x():5} w{g.width():4} hint{w.sizeHint().width():5} '
+                  f'min{w.minimumSizeHint().width():5} vis{int(w.isVisible())} '
+                  f'pol{w.sizePolicy().horizontalPolicy().name} stretch{lay.stretch(i)}', flush=True)
+        st = hb.style()
+        print('HDR ext extent', st.pixelMetric(QStyle.PixelMetric.PM_ToolBarExtensionExtent), flush=True)
+        for b in self.gui.bars_manager.main_bars:
+            ext = b.findChild(QToolButton, 'qt_toolbar_ext_button')
+            if ext is not None:
+                print('HDR ext', type(ext).__name__, 'icon null', ext.icon().isNull(), 'hint', ext.sizeHint(),
+                      'vis', ext.isVisible(), flush=True)
+        self.next()
 
     def quit(self):
         if os.environ.get('ADWAITA_SMOKE'):
