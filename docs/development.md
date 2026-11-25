@@ -172,7 +172,7 @@ Steps in `scripts/dev/shots/main.py`: `main`, `jobsbutton` (hidden status bar, P
 header's edge), `toggles` (hides/shows panes), `menu`, `menus` (every menu), `grid`, `prefs`,
 `metadata`, `news`, `details` (scrolled book description), `sidetoggle` (header-bar sidebar
 toggles), `covertoggle` (cover-browser toggle), `slide` (pane slide; `SLIDE_MID_MS`, `SLIDE_LIST`), `coverroom` (details cover shadow
-not clipped), `mdcheck` (Edit metadata tidy-up; needs a selected book, so run after `main`), `flip` (live light/dark switch), `views`, `closebtn`, `prefcheck`.
+not clipped), `coverzoom` (details cover shown at full size at once, no zoom-in), `mdcheck` (Edit metadata tidy-up; needs a selected book, so run after `main`), `flip` (live light/dark switch), `views`, `closebtn`, `prefcheck`.
 
 **Other calibre setups** (`configs` step, the second pass of `smoke.sh`). It switches calibre live, the
 way its preferences do (`gprefs` + `bars_manager.init_bars()` / `update_bars()` /
@@ -223,7 +223,8 @@ shortcuts and the header bar does not move, the status bar starts hidden and Pre
 toggles and saves it, the jobs spinner shows exactly while a job runs with the bar hidden, hidden panes free their space and come back (also
 through the header bar's sidebar toggles, which must follow the panes), the
 toolbar saves without Preferences, the book area starts right under the header bar with no strip
-in between, and a grid repaint stays within `SMOKE_FRAME_BUDGET_MS` (default 30). A second pass
+in between, the details cover appears at full size with no zoom-in (`coverzoom`), and a grid
+repaint stays within `SMOKE_FRAME_BUDGET_MS` (default 30). A second pass
 runs `configs` with the integrated title bar and a folder device (see *Other calibre setups*).
 The first-run switch is checked separately: `FIRSTRUN=1 ONLY=main,firstrun scripts/dev/run.sh`.
 Run it before every release and after touching the Qt modules.

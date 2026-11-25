@@ -5,10 +5,11 @@ libadwaita's .card: box-shadow: 0 0 0 1px rgb(0 0 6 / 3%), 0 1px 3px 1px rgb(0 0
 adds a faint light hairline instead, keeping dark covers off the dark grid.
 
 Hooks: the cover grid's CoverDelegate.paint_cover and the book details panel's CoverView. Both
-follow calibre's cover corner radius setting.
+follow calibre's cover corner radius setting. The details cover also appears without calibre's
+zoom-in.
 """
 
-from qt.core import QColor, QPainter, QPainterPath, QRect, QRectF, QSize, Qt
+from qt.core import QAbstractAnimation, QColor, QPainter, QPainterPath, QRect, QRectF, QSize, Qt
 
 _ORIG_COVER = None
 
@@ -165,8 +166,21 @@ def install():
             self.current_pixmap_size = size
             self.animation.setEndValue(size)
 
+    def no_zoom(original):
+        # calibre zooms a new cover in from 0x0 over 1 s; GNOME apps just show it. do_layout has
+        # already set the final size as the end value, so jump there before anything paints.
+        def wrapper(self, *args, **kwargs):
+            original(self, *args, **kwargs)
+            if self.animation.state() == QAbstractAnimation.State.Running:
+                self.animation.stop()
+                self.current_pixmap_size = self.animation.endValue()
+                self.update()
+        return wrapper
+
     CoverDelegate.paint_cover = paint_cover
     CoverView.paintEvent = details_paint
     CoverView.do_layout = details_layout
+    CoverView.show_data = no_zoom(CoverView.show_data)
+    CoverView.update_cover = no_zoom(CoverView.update_cover)
     CoverDelegate._adwaita_patched = True
     return True

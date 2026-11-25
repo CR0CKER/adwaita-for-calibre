@@ -29,5 +29,5 @@ smoke_pass() {  # smoke_pass <name> [VAR=value ...]: one calibre run; fails unle
 # Both passes with the Adwaita icon set installed, as users see it (ICONS=1 in the first pass
 # installs it into the dev profile; it stays for the second).
 smoke_pass window ICONS=1 \
-    ONLY=main,jobsbutton,layoutmenu,views,toggles,sidetoggle,covertoggle,slide,coverroom,mdcheck,prefcheck,edges,perf,sidebar,details
+    ONLY=main,jobsbutton,layoutmenu,views,toggles,sidetoggle,covertoggle,slide,coverroom,coverzoom,mdcheck,prefcheck,edges,perf,sidebar,details
 smoke_pass configs INTEGRATED=1 CONFIGS_DEVICE=1 ONLY=main,configs

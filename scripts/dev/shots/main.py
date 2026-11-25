@@ -39,7 +39,7 @@ class Shots(InterfaceAction):
             ('sidebar', self.sidebar), ('perf', self.perf),
             ('edges', self.edges), ('details', self.details), ('toggles', self.toggles),
             ('sidetoggle', self.sidetoggle), ('covertoggle', self.covertoggle), ('slide', self.slide),
-            ('coverroom', self.coverroom), ('mdcheck', self.mdcheck),
+            ('coverroom', self.coverroom), ('coverzoom', self.coverzoom), ('mdcheck', self.mdcheck),
             ('reset', self.reset),
             ('menu', self.menu),
             ('menus', self.menus), ('grid', self.grid),
@@ -293,6 +293,32 @@ class Shots(InterfaceAction):
             edge += [img.pixel(x, y) for y in range(h) for x in (0, w - 1)]
             bad = sum(1 for px in edge if off(px))
             self.check(bad == 0, f'details cover shadow fits its view ({bad} edge pixels not background)')
+        self.next()
+
+    def coverzoom(self):
+        # The details cover appears at its final size: no zoom-in from 0x0 on a new book or a
+        # changed cover (plugin/covers.py). Checked before any timer tick could advance it.
+        from calibre.gui2.book_details import CoverView
+        from qt.core import QAbstractAnimation
+        running = QAbstractAnimation.State.Running
+        m = self.gui.library_view.model()
+        for cv in self.gui.findChildren(CoverView):
+            if not cv.isVisible():
+                continue
+            cur = cv.data.get('id')
+            row = next((r for r in range(m.rowCount(None)) if m.id(r) != cur), None)
+            if row is None:
+                self.check(False, 'cover zoom: library has a second book')
+                continue
+            cv.show_data(m.get_book_display_info(row))
+            end = cv.animation.endValue()
+            self.check(cv.animation.state() != running and not end.isEmpty()
+                       and cv.current_pixmap_size == end,
+                       f'new book: cover at full size at once ({cv.current_pixmap_size} vs {end})')
+            cv.update_cover(pmap=cv.pixmap)
+            end = cv.animation.endValue()
+            self.check(cv.animation.state() != running and cv.current_pixmap_size == end,
+                       'changed cover: no zoom-in')
         self.next()
 
     def slide(self):
