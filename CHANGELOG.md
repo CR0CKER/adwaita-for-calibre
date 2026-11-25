@@ -11,6 +11,8 @@ All notable changes to this project are documented here. The format follows
 - The cover in the book details panel no longer zooms in when you select a book or change its
   cover; it appears at full size, as artwork does in GNOME apps. calibre's other animations
   are unchanged.
+- The book details text's scroll bar sits at the pane's edge, as in the tag browser, instead of
+  18 px in from it.
 
 ### Fixed
 

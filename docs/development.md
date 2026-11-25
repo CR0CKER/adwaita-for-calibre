@@ -113,6 +113,11 @@
   calling `do_layout`, so a size computed for an earlier, larger view survives. `covers.py`
   therefore clamps the cover to the view minus `SHADOW_ROOM` in `paintEvent` too, or the card
   shadow is clipped at the view's edges (visible in light mode).
+- **Details right inset.** The pane has 12 px insets except on the right, so the text view, and
+  its overlay scroll bar, reach the pane's edge (as in the tag browser). The text keeps its place
+  through a 12 px viewport margin; with the cover above the text, `panes.py` trims the inset off
+  `CoverView.rect()`, which calibre and `covers.py` size and centre the cover from. The `details`
+  step checks the bar's gap, equal text margins and the centred cover.
 - **Pane scroll shades** (`shade.ScrollAreaShades`). They take the viewport's top and bottom but
   snap to the pane's edges (sides, top under the header bar, bottom on the bottom bar), so the
   tree's frame and the details insets do not leave them short or low; a gap wider than

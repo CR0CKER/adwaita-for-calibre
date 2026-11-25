@@ -120,6 +120,26 @@ class Shots(InterfaceAction):
         tx = tb.mapTo(self.gui, QPoint(0, 0)).x()
         print('DETAILS extent shade', (sx, sx + sh.width()), 'pane', (bx, bx + bd.width()),
               'text', (tx, tx + tb.width()), flush=True)
+        sb = tb.verticalScrollBar()
+        sbx = sb.mapTo(self.gui, QPoint(0, 0)).x()
+        # The scroll bar sits near the pane's edge, as the tag browser's does (6 px there; it
+        # was 18 with the pane's right inset).
+        gap = bx + bd.width() - (sbx + sb.width())
+        self.check(gap <= 6, f'details scroll bar {gap} px from the pane edge (at most 6)')
+        # The text keeps equal margins to the pane's edges (the overlay bar floats over it, as
+        # everywhere).
+        vp = tb.viewport()
+        vleft = vp.mapTo(self.gui, QPoint(0, 0)).x()
+        lm, rm = vleft - bx, bx + bd.width() - (vleft + vp.width())
+        self.check(lm == rm, f'details text margins equal ({lm} | {rm})')
+        from calibre.gui2.book_details import CoverView
+        cv = bd.findChild(CoverView)
+        if cv is not None and cv.isVisible() and cv.vertical:
+            # Cover above the text: equal margins left and right of the cover.
+            w = cv.current_pixmap_size.width()
+            x = cv.mapTo(self.gui, QPoint(0, 0)).x() + max(cv.rect().width() - w, 0) // 2
+            left, right = x - bx, bx + bd.width() - (x + w)
+            self.check(abs(left - right) <= 1, f'details cover centred in the pane ({left} | {right})')
         if tx - bx < 40:
             self.check((sx, sx + sh.width()) == (bx, bx + bd.width()),
                        f'details top shade spans the pane (shade {sx}+{sh.width()}, pane {bx}+{bd.width()})')
