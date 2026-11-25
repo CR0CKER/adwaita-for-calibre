@@ -6,7 +6,8 @@
 * calibre's splitter grips (the dots, CalibreStyle's CE_Splitter) become that hairline; the rest
   of the handle takes the content colour. Panes stay resizable: the handle keeps its width, only
   its painting changes.
-* The details pane gets 12 px insets, so the cover sits on it as a card.
+* The details pane gets 12 px insets, so the cover sits on it as a card; on the right, the inset is
+  taken inside the text view and the cover view instead, so the text's scroll bar reaches the edge.
 """
 
 from qt.core import QColor, QPainter, Qt
@@ -68,17 +69,43 @@ def install(gui):
     _install_cover_browser_gap()
 
     from calibre.gui2.book_details import BookDetails
-    from qt.core import QWidget
+    from qt.core import QTextBrowser, QWidget
+    _install_cover_trim(BookDetails)
     for w in gui.findChildren(QWidget):
         if isinstance(w, BookDetails):
             w.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-            w.setContentsMargins(INSET, INSET, INSET, INSET)
+            # No right inset: the text area reaches the pane's edge, so its overlay scroll bar
+            # sits there as in the tag browser. The text keeps its place through a viewport
+            # margin, the cover through _install_cover_trim.
+            w.setContentsMargins(INSET, INSET, 0, INSET)
+            for tb in w.findChildren(QTextBrowser):
+                tb.setViewportMargins(0, 0, INSET, 0)
             w.do_layout(w.rect())
     for h in gui.findChildren(SplitterHandle):
         h.update()
     container = getattr(gui, 'layout_container', None)
     if container is not None and hasattr(container, 'relayout'):
         container.relayout()
+
+
+def _install_cover_trim(BookDetails):
+    """With the cover above the text, the details pane has no right inset (see install), so the
+    cover view runs to the pane's edge. calibre and covers.py size and centre the cover from
+    CoverView.rect(); trimming the inset off it there keeps the cover centred between equal
+    margins."""
+    from calibre.gui2.book_details import CoverView
+    from qt.core import QWidget
+    if getattr(CoverView, '_adwaita_trimmed', False):
+        return
+
+    def rect(self):
+        r = QWidget.rect(self)
+        if getattr(self, 'vertical', False) and isinstance(self.parentWidget(), BookDetails):
+            r.setWidth(max(1, r.width() - INSET))
+        return r
+
+    CoverView.rect = rect
+    CoverView._adwaita_trimmed = True
 
 
 # Padding at the top of the cover browser, so the front cover's top edge does not touch the

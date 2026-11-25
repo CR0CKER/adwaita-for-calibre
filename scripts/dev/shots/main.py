@@ -39,7 +39,7 @@ class Shots(InterfaceAction):
             ('sidebar', self.sidebar), ('perf', self.perf),
             ('edges', self.edges), ('details', self.details), ('toggles', self.toggles),
             ('sidetoggle', self.sidetoggle), ('covertoggle', self.covertoggle), ('slide', self.slide),
-            ('coverroom', self.coverroom), ('mdcheck', self.mdcheck),
+            ('coverroom', self.coverroom), ('coverzoom', self.coverzoom), ('mdcheck', self.mdcheck),
             ('reset', self.reset),
             ('menu', self.menu),
             ('menus', self.menus), ('grid', self.grid),
@@ -120,6 +120,26 @@ class Shots(InterfaceAction):
         tx = tb.mapTo(self.gui, QPoint(0, 0)).x()
         print('DETAILS extent shade', (sx, sx + sh.width()), 'pane', (bx, bx + bd.width()),
               'text', (tx, tx + tb.width()), flush=True)
+        sb = tb.verticalScrollBar()
+        sbx = sb.mapTo(self.gui, QPoint(0, 0)).x()
+        # The scroll bar sits near the pane's edge, as the tag browser's does (6 px there; it
+        # was 18 with the pane's right inset).
+        gap = bx + bd.width() - (sbx + sb.width())
+        self.check(gap <= 6, f'details scroll bar {gap} px from the pane edge (at most 6)')
+        # The text keeps equal margins to the pane's edges (the overlay bar floats over it, as
+        # everywhere).
+        vp = tb.viewport()
+        vleft = vp.mapTo(self.gui, QPoint(0, 0)).x()
+        lm, rm = vleft - bx, bx + bd.width() - (vleft + vp.width())
+        self.check(lm == rm, f'details text margins equal ({lm} | {rm})')
+        from calibre.gui2.book_details import CoverView
+        cv = bd.findChild(CoverView)
+        if cv is not None and cv.isVisible() and cv.vertical:
+            # Cover above the text: equal margins left and right of the cover.
+            w = cv.current_pixmap_size.width()
+            x = cv.mapTo(self.gui, QPoint(0, 0)).x() + max(cv.rect().width() - w, 0) // 2
+            left, right = x - bx, bx + bd.width() - (x + w)
+            self.check(abs(left - right) <= 1, f'details cover centred in the pane ({left} | {right})')
         if tx - bx < 40:
             self.check((sx, sx + sh.width()) == (bx, bx + bd.width()),
                        f'details top shade spans the pane (shade {sx}+{sh.width()}, pane {bx}+{bd.width()})')
@@ -293,6 +313,32 @@ class Shots(InterfaceAction):
             edge += [img.pixel(x, y) for y in range(h) for x in (0, w - 1)]
             bad = sum(1 for px in edge if off(px))
             self.check(bad == 0, f'details cover shadow fits its view ({bad} edge pixels not background)')
+        self.next()
+
+    def coverzoom(self):
+        # The details cover appears at its final size: no zoom-in from 0x0 on a new book or a
+        # changed cover (plugin/covers.py). Checked before any timer tick could advance it.
+        from calibre.gui2.book_details import CoverView
+        from qt.core import QAbstractAnimation
+        running = QAbstractAnimation.State.Running
+        m = self.gui.library_view.model()
+        for cv in self.gui.findChildren(CoverView):
+            if not cv.isVisible():
+                continue
+            cur = cv.data.get('id')
+            row = next((r for r in range(m.rowCount(None)) if m.id(r) != cur), None)
+            if row is None:
+                self.check(False, 'cover zoom: library has a second book')
+                continue
+            cv.show_data(m.get_book_display_info(row))
+            end = cv.animation.endValue()
+            self.check(cv.animation.state() != running and not end.isEmpty()
+                       and cv.current_pixmap_size == end,
+                       f'new book: cover at full size at once ({cv.current_pixmap_size} vs {end})')
+            cv.update_cover(pmap=cv.pixmap)
+            end = cv.animation.endValue()
+            self.check(cv.animation.state() != running and cv.current_pixmap_size == end,
+                       'changed cover: no zoom-in')
         self.next()
 
     def slide(self):

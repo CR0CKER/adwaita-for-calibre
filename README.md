@@ -1,6 +1,6 @@
 # Adwaita for calibre
 
-Last updated: 2026-11-20 02:39 PM CET
+Last updated: 2026-11-25 08:36 PM CET
 
 [![ci](https://github.com/CR0CKER/adwaita-for-calibre/actions/workflows/ci.yml/badge.svg)](https://github.com/CR0CKER/adwaita-for-calibre/actions/workflows/ci.yml)
 [![License: GPL-3.0](https://img.shields.io/github/license/CR0CKER/adwaita-for-calibre)](LICENSE)
@@ -45,7 +45,7 @@ and selection, with a shadow above it while content is scrolled beneath. The Lay
 to the main menu either way.
 
 **Books.** Covers are drawn as cards with a soft shadow, so white covers stand out on a white
-grid. The bookshelf view uses flat Adwaita colours instead of wood.
+grid. In the book details panel the cover just appears, without calibre's zoom-in. The bookshelf view uses flat Adwaita colours instead of wood.
 
 **Dialogs and popups.** The Layout popup is a popover. Edit metadata becomes one calm surface: a
 top-aligned form, consistent icon sizes, a cover card, card-style formats list and comments
